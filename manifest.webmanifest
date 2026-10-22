@@ -1,0 +1,16 @@
+{
+  "name": "Registro de Rompimento",
+  "short_name": "Rompimentos",
+  "description": "Registro de rompimentos de fibra e materiais, funciona sem internet.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f2f5f9",
+  "theme_color": "#1f3a5f",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

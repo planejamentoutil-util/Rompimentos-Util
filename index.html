@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1f3a5f">
+<title>Registro de Rompimento</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root { --azul:#1f3a5f; --azul2:#2d5a8c; --borda:#c9d3df; --fundo:#f2f5f9; --erro:#b3261e; --ok:#1e6b34; --alerta:#8a5a00; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--fundo); color:#1b1f24; font-size:16px; }
+  header { background:var(--azul); color:#fff; padding:12px 16px; position:sticky; top:0; z-index:5; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  header h1 { margin:0; font-size:18px; }
+  header small { opacity:.85; font-size:12px; display:block; }
+  .pill { font-size:12px; font-weight:700; padding:5px 10px; border-radius:999px; white-space:nowrap; }
+  .pill.on { background:#d9f2df; color:var(--ok); }
+  .pill.off { background:#fde2d5; color:#9a3412; }
+  main { padding:12px; max-width:640px; margin:0 auto 80px; }
+  .card { background:#fff; border:1px solid var(--borda); border-radius:12px; padding:14px; margin-bottom:12px; }
+  h2 { font-size:16px; margin:0 0 10px; color:var(--azul); }
+  label { display:block; font-size:14px; font-weight:600; margin:10px 0 0; }
+  input, select, textarea { width:100%; font-size:16px; padding:11px 10px; margin-top:4px; border:1px solid var(--borda); border-radius:8px; background:#fff; font-family:inherit; color:inherit; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .gps { display:flex; gap:8px; }
+  .gps input { flex:1; }
+  button { font-size:15px; border-radius:8px; border:0; padding:11px 14px; cursor:pointer; font-family:inherit; }
+  .gps button { margin-top:4px; white-space:nowrap; background:#e3ebf5; color:var(--azul); font-weight:600; }
+  .pri { width:100%; background:var(--azul2); color:#fff; font-size:17px; font-weight:700; padding:15px; }
+  .pri:disabled { opacity:.6; }
+  .sec { background:#e3ebf5; color:var(--azul); font-weight:600; width:100%; margin-top:10px; }
+  .mini { background:#e3ebf5; color:var(--azul); font-weight:600; padding:7px 10px; font-size:13px; }
+  .mini.perigo { background:#fdecea; color:var(--erro); }
+  .rem { background:transparent; color:var(--erro); padding:4px 6px; font-size:14px; }
+  .chk { display:flex; gap:8px; align-items:center; font-weight:500; }
+  .chk input { width:22px; height:22px; margin:0; }
+  .dica { display:block; color:#555; font-size:12px; font-weight:400; margin-top:4px; }
+  .mat { border:1px dashed var(--borda); border-radius:10px; padding:10px; margin-bottom:10px; background:#fafcff; }
+  .mat-top { display:flex; justify-content:space-between; align-items:center; }
+  .m-dev { display:block; margin-top:6px; color:var(--azul); font-weight:600; font-size:13px; }
+  .thumbs { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+  .thumbs div { position:relative; }
+  .thumbs img { width:84px; height:84px; object-fit:cover; border-radius:8px; border:1px solid var(--borda); }
+  .thumbs button { position:absolute; top:-6px; right:-6px; background:var(--erro); color:#fff; border-radius:50%; width:24px; height:24px; padding:0; font-size:13px; }
+  .erros { background:#fdecea; border:1px solid #f1b0ab; color:var(--erro); border-radius:10px; padding:10px 14px; margin-bottom:12px; }
+  .erros ul { margin:6px 0 0; padding-left:18px; }
+  .aviso { background:#fff8e1; border:1px solid #f0d58a; border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:14px; display:flex; justify-content:space-between; gap:10px; align-items:center; }
+  .aviso button { background:#fff; border:1px solid #d9b95c; padding:6px 10px; font-size:13px; }
+  .painel-top { display:flex; justify-content:space-between; align-items:center; }
+  .item { border-top:1px solid #e6ebf1; padding:10px 0; font-size:14px; }
+  .item:first-child { border-top:0; }
+  .item b { display:block; }
+  .item .meta { color:#555; font-size:12px; }
+  .item .erro { color:var(--erro); font-size:13px; margin-top:4px; }
+  .item .acoes { display:flex; gap:8px; margin-top:6px; }
+  .vazio { color:#555; font-size:14px; }
+  details summary { cursor:pointer; color:var(--azul); font-weight:600; font-size:14px; margin-top:10px; }
+  .ok { border-color:#9fd0ac; background:#eef8f0; }
+  .ok h2 { color:var(--ok); }
+  .id { font-size:24px; font-weight:800; margin:6px 0 4px; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Registro de rompimento</h1>
+    <small id="statusRascunho">Funciona sem internet</small>
+  </div>
+  <span id="statusRede" class="pill"></span>
+</header>
+<main>
+  <div id="avisoConfig" class="erros" hidden>
+    App ainda não configurado: o arquivo config.js precisa da URL e da chave da planilha. Os registros ficam guardados, mas não são enviados.
+  </div>
+
+  <section class="card" id="painel">
+    <div class="painel-top"><h2 style="margin:0">Envios</h2><span id="contFila" class="dica" style="margin:0"></span></div>
+    <div id="filaLista" style="margin-top:8px"></div>
+    <button type="button" id="enviarAgora" class="sec" hidden>Enviar agora</button>
+    <details><summary>Enviados recentemente</summary><div id="recLista"></div></details>
+  </section>
+
+  <div id="avisoRascunho" class="aviso" hidden>
+    <span>Rascunho restaurado deste aparelho.</span>
+    <button type="button" id="descartar">Descartar</button>
+  </div>
+
+  <div id="sucesso" class="card ok" hidden>
+    <h2 id="sucTitulo">Registro guardado</h2>
+    <div class="id" id="idGerado"></div>
+    <div id="sucTexto" style="font-size:14px"></div>
+    <button type="button" id="novo" class="pri" style="margin-top:14px">Registrar outro rompimento</button>
+  </div>
+
+  <form id="f" novalidate>
+    <section class="card">
+      <h2>1. Identificação</h2>
+      <div class="row2">
+        <label>Seu nome *<input id="tecnico" list="dlTec" autocomplete="name" placeholder="nome e sobrenome"></label>
+        <label>Cidade de origem *<input id="cidade" list="dlCid" placeholder="de onde saiu"></label>
+      </div>
+      <div class="row2">
+        <label>Data do atendimento *<input id="dataAtendimento" type="date"></label>
+        <label>OS do IXC<input id="osIxc" inputmode="numeric" placeholder="se houver"></label>
+      </div>
+      <div class="row2">
+        <label>POP / ponta origem *<input id="popOrigem" list="dlPop" placeholder="escolha ou digite"></label>
+        <label>POP / ponta destino *<input id="popDestino" list="dlPop" placeholder="escolha ou digite"></label>
+      </div>
+      <label>Cabo / trecho<input id="cabo" placeholder="nome do cabo, se souber"></label>
+      <label>Local do rompimento *
+        <div class="gps"><input id="localRompimento" placeholder="-14.432100, -56.512300 ou link do Maps"><button type="button" data-gps="localRompimento">📍 GPS</button></div>
+        <small class="dica" id="dica-localRompimento"></small>
+      </label>
+      <label>Observações<textarea id="observacoes" rows="2"></textarea></label>
+    </section>
+
+    <section class="card" id="secA"></section>
+    <section class="card" id="secB"></section>
+
+    <section class="card">
+      <h2>4. Materiais utilizados</h2>
+      <div id="materiais"></div>
+      <button type="button" id="addMat" class="sec">+ Adicionar material</button>
+      <label class="chk" style="margin-top:12px"><input type="checkbox" id="semMateriais"> Não utilizei materiais</label>
+    </section>
+
+    <datalist id="dlTec"></datalist><datalist id="dlCid"></datalist>
+    <datalist id="dlPop"></datalist><datalist id="dlMat"></datalist>
+    <div id="erros" class="erros" hidden></div>
+    <button type="submit" id="enviar" class="pri">Salvar e enviar</button>
+  </form>
+</main>
+
+<script src="config.js"></script>
+<script src="fila.js"></script>
+<script>
+  var CFG = self.APP_CONFIG || {};
+  var PADRAO = {
+    tecnicos: [], cidades: [], pops: [], materiais: [],
+    origens: ['Estoque da filial', 'Estoque da rota/equipe', 'Outra origem'],
+    situacoes: ['Caixa existente', 'Caixa nova', 'Caixa substituída', 'Caixa removida'],
+    unidades: ['m', 'un', 'pç', 'kg', 'rolo', 'cx']
+  };
+  var CAD = PADRAO;
+  var CHAVE_RASC = 'romp_app_rascunho_v1', CHAVE_ID = 'romp_identidade', CHAVE_CAD = 'romp_cadastros';
+  var estado = { idEnvio: null };
+  var fotos = { A: [], B: [] };
+  var timerSalvar = null, ultimoEnvio = null, sincronizando = false;
+
+  function $(id) { return document.getElementById(id); }
+  function q(el, sel) { return el.querySelector(sel); }
+  function configurado() { return /^https:\/\/script\.google\.com\/.+\/exec$/.test(String(CFG.API_URL || '')); }
+  function novoId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+  }
+  function hojeISO() { var d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); }
+  function hora(ms) { return new Date(ms).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+  function opt(v, t) { var o = document.createElement('option'); o.value = v; o.textContent = t || v; return o; }
+  function preencher(sel, itens, vazio) {
+    sel.innerHTML = '';
+    sel.appendChild(opt('', vazio || 'Selecione…'));
+    itens.forEach(function (i) { sel.appendChild(opt(i)); });
+  }
+  function lista(id, itens) {
+    var dl = $(id); dl.innerHTML = '';
+    itens.forEach(function (t) { var o = document.createElement('option'); o.value = t; dl.appendChild(o); });
+  }
+  function rotuloMat(m) { return m.codigo + ' – ' + m.descricao; }
+  function acharMat(texto) {
+    var t = String(texto || '').trim().toLowerCase(); if (!t) return null;
+    var cod = t.split(/\s+[–-]\s+/)[0].trim();
+    return CAD.materiais.filter(function (m) {
+      return m.codigo.toLowerCase() === cod || m.descricao.toLowerCase() === t || rotuloMat(m).toLowerCase() === t;
+    })[0] || null;
+  }
+  function num(v) { var s = String(v == null ? '' : v).trim().replace(',', '.'); return s === '' ? NaN : Number(s); }
+  function localValido(s) {
+    s = String(s || '').trim();
+    if (/^-?\d{1,2}\.\d+\s*[,; ]\s*-?\d{1,3}\.\d+$/.test(s)) return true;
+    return /^https?:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps|(www\.)?google\.[a-z.]+\/maps|maps\.google\.)/i.test(s);
+  }
+
+  // ---------- Cadastros (guardados no aparelho para uso offline) ----------
+  function aplicarCadastros(cad) {
+    CAD = Object.assign({}, PADRAO, cad || {});
+    lista('dlTec', CAD.tecnicos);
+    lista('dlCid', CAD.cidades);
+    lista('dlPop', CAD.pops.map(function (p) { return p.codigo; }));
+    lista('dlMat', CAD.materiais.map(rotuloMat));
+  }
+  function atualizarCadastros() {
+    if (!configurado() || !navigator.onLine) return Promise.resolve();
+    return fetch(CFG.API_URL + '?api=cadastros&chave=' + encodeURIComponent(CFG.CHAVE || ''), { redirect: 'follow' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) return;
+        try { localStorage.setItem(CHAVE_CAD, JSON.stringify({ em: Date.now(), dados: j.cadastros })); } catch (e) {}
+        aplicarCadastros(j.cadastros);
+      }).catch(function () {});
+  }
+
+  // ---------- Pontos de emenda ----------
+  function htmlPonto(k, n) {
+    return '<h2>' + n + '. Ponto de emenda ' + k + '</h2>' +
+      '<label>Localização *<div class="gps"><input id="local' + k + '" placeholder="coordenadas ou link do Maps">' +
+      '<button type="button" data-gps="local' + k + '">📍 GPS</button></div><small class="dica" id="dica-local' + k + '"></small></label>' +
+      '<label>Situação da caixa *<select id="situacao' + k + '"></select></label>' +
+      '<label id="wrapEx' + k + '" hidden>Qual é a caixa existente? *<input id="caixaExistente' + k + '" placeholder="ex.: CEO-05"></label>' +
+      '<label id="wrapNova' + k + '" hidden>Identificação da caixa nova<input id="caixaNova' + k + '" placeholder="se já definida"></label>' +
+      '<label>Fibras emendadas<input id="fibras' + k + '" inputmode="numeric" placeholder="quantidade"></label>' +
+      '<label>Fotos (até 3)<input id="fotos' + k + '" type="file" accept="image/*" multiple></label><div class="thumbs" id="thumbs' + k + '"></div>' +
+      '<label>Observações<textarea id="obs' + k + '" rows="2"></textarea></label>';
+  }
+  function atualizarPonto(k) {
+    var s = $('situacao' + k).value;
+    $('wrapEx' + k).hidden = ['Caixa existente', 'Caixa substituída', 'Caixa removida'].indexOf(s) < 0;
+    $('wrapNova' + k).hidden = ['Caixa nova', 'Caixa substituída'].indexOf(s) < 0;
+  }
+
+  // ---------- Fotos ----------
+  function comprimir(file) {
+    return new Promise(function (res, rej) {
+      var img = new Image(); var url = URL.createObjectURL(file);
+      img.onload = function () {
+        var max = 1600, s = Math.min(1, max / Math.max(img.width, img.height));
+        var c = document.createElement('canvas');
+        c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        res(c.toDataURL('image/jpeg', 0.72));
+      };
+      img.onerror = function () { rej(new Error('Imagem inválida')); };
+      img.src = url;
+    });
+  }
+  function desenharFotos(k) {
+    var box = $('thumbs' + k); box.innerHTML = '';
+    fotos[k].forEach(function (d, i) {
+      var w = document.createElement('div');
+      w.innerHTML = '<img alt=""><button type="button" title="remover">✕</button>';
+      q(w, 'img').src = d;
+      q(w, 'button').onclick = function () { fotos[k].splice(i, 1); desenharFotos(k); salvarDepois(); };
+      box.appendChild(w);
+    });
+  }
+  function ligarFotos(k) {
+    $('fotos' + k).addEventListener('change', function (ev) {
+      var arquivos = Array.prototype.slice.call(ev.target.files).slice(0, Math.max(0, 3 - fotos[k].length));
+      ev.target.value = '';
+      Promise.all(arquivos.map(comprimir)).then(function (l) {
+        fotos[k] = fotos[k].concat(l).slice(0, 3); desenharFotos(k); salvarDepois();
+      }).catch(function (e) { alert(e.message); });
+    });
+  }
+
+  // ---------- Materiais ----------
+  function garantirUnidade(sel, un) {
+    if (!un) return;
+    var tem = Array.prototype.some.call(sel.options, function (o) { return o.value === un; });
+    if (!tem) sel.appendChild(opt(un));
+  }
+  function addMat(d) {
+    d = d || {};
+    $('semMateriais').checked = false;
+    var div = document.createElement('div'); div.className = 'mat';
+    div.innerHTML =
+      '<div class="mat-top"><b>Material</b><button type="button" class="rem">✕ remover</button></div>' +
+      '<label>Material *<input class="m-cod" list="dlMat" placeholder="escolha ou digite"></label>' +
+      '<div class="row2"><label>Qtd. utilizada *<input class="m-util" inputmode="decimal"></label>' +
+      '<label>Unidade *<select class="m-un"></select></label></div>' +
+      '<label>Origem *<select class="m-orig"></select></label>' +
+      '<div class="m-fil" hidden><label class="chk"><input type="checkbox" class="m-sobra"> Retirei mais do que usei (sobra para devolver)</label>' +
+      '<label class="m-retw" hidden>Qtd. retirada da filial *<input class="m-ret" inputmode="decimal"></label><span class="m-dev"></span></div>' +
+      '<label class="m-justw" hidden>De onde veio? *<input class="m-just" placeholder="ex.: emprestado da equipe X"></label>' +
+      '<label>Observações<input class="m-obs"></label>';
+    preencher(q(div, '.m-un'), CAD.unidades, '—');
+    preencher(q(div, '.m-orig'), CAD.origens);
+    q(div, '.m-cod').value = d.material || '';
+    if (d.unidade) { garantirUnidade(q(div, '.m-un'), d.unidade); q(div, '.m-un').value = d.unidade; }
+    q(div, '.m-util').value = d.qtdUtilizada || '';
+    q(div, '.m-orig').value = d.origem || '';
+    q(div, '.m-sobra').checked = !!d.sobra;
+    q(div, '.m-ret').value = d.qtdRetirada || '';
+    q(div, '.m-just').value = d.justificativa || '';
+    q(div, '.m-obs').value = d.observacoes || '';
+    q(div, '.rem').onclick = function () { div.remove(); salvarDepois(); };
+    q(div, '.m-cod').addEventListener('input', function () {
+      var m = acharMat(this.value);
+      if (m) { garantirUnidade(q(div, '.m-un'), m.unidade); q(div, '.m-un').value = m.unidade; }
+    });
+    div.addEventListener('input', function () { atualizarMat(div); });
+    div.addEventListener('change', function () { atualizarMat(div); });
+    $('materiais').appendChild(div);
+    atualizarMat(div);
+    return div;
+  }
+  function atualizarMat(div) {
+    var un = q(div, '.m-un').value;
+    var orig = q(div, '.m-orig').value;
+    var filial = orig === 'Estoque da filial';
+    q(div, '.m-fil').hidden = !filial;
+    q(div, '.m-justw').hidden = orig !== 'Outra origem';
+    var sobra = filial && q(div, '.m-sobra').checked;
+    q(div, '.m-retw').hidden = !sobra;
+    var u = num(q(div, '.m-util').value), r = num(q(div, '.m-ret').value);
+    var txt = '';
+    if (sobra && r > 0 && u > 0) txt = r >= u ? 'A devolver: ' + (Math.round((r - u) * 1000) / 1000) + ' ' + un : 'Retirada menor que a utilizada!';
+    q(div, '.m-dev').textContent = txt;
+    salvarDepois();
+  }
+
+  // ---------- GPS (funciona sem dados móveis; só precisa do GPS ligado) ----------
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-gps]'); if (!b) return;
+    var alvo = b.getAttribute('data-gps'), dica = $('dica-' + alvo);
+    if (!navigator.geolocation) { dica.textContent = 'GPS indisponível: cole as coordenadas do Google Maps.'; return; }
+    dica.textContent = 'Obtendo localização… (sem internet pode levar até 1 minuto)';
+    navigator.geolocation.getCurrentPosition(function (p) {
+      $(alvo).value = p.coords.latitude.toFixed(6) + ', ' + p.coords.longitude.toFixed(6);
+      var a = Math.round(p.coords.accuracy);
+      dica.textContent = 'Precisão aproximada: ' + a + ' m' + (a > 30 ? ' (baixa — espere uns segundos e toque de novo)' : '');
+      salvarDepois();
+    }, function (err) {
+      dica.textContent = 'Não foi possível usar o GPS (' + err.message + '). Confira se a localização do celular está ligada e tente de novo em céu aberto.';
+    }, { enableHighAccuracy: true, timeout: 60000, maximumAge: 0 });
+  });
+
+  // ---------- Coleta, validação, preenchimento ----------
+  function coletar(incluirFotos) {
+    var pontos = ['A', 'B'].map(function (k) {
+      return {
+        local: $('local' + k).value.trim(), situacao: $('situacao' + k).value,
+        caixaExistente: $('wrapEx' + k).hidden ? '' : $('caixaExistente' + k).value.trim(),
+        caixaNova: $('wrapNova' + k).hidden ? '' : $('caixaNova' + k).value.trim(),
+        fibras: $('fibras' + k).value.trim(), observacoes: $('obs' + k).value.trim(),
+        fotos: incluirFotos ? fotos[k].map(function (d) { return { tipo: 'image/jpeg', base64: d.split(',')[1] }; }) : []
+      };
+    });
+    var materiais = Array.prototype.map.call(document.querySelectorAll('.mat'), function (div) {
+      var orig = q(div, '.m-orig').value;
+      var sobra = orig === 'Estoque da filial' && q(div, '.m-sobra').checked;
+      return {
+        material: q(div, '.m-cod').value.trim(), unidade: q(div, '.m-un').value,
+        qtdUtilizada: q(div, '.m-util').value.trim(), origem: orig,
+        sobra: sobra, qtdRetirada: sobra ? q(div, '.m-ret').value.trim() : '',
+        justificativa: orig === 'Outra origem' ? q(div, '.m-just').value.trim() : '',
+        observacoes: q(div, '.m-obs').value.trim()
+      };
+    });
+    return {
+      idEnvio: estado.idEnvio, tecnico: $('tecnico').value.trim(), cidade: $('cidade').value.trim(),
+      dataAtendimento: $('dataAtendimento').value, osIxc: $('osIxc').value.trim(),
+      popOrigem: $('popOrigem').value.trim(), popDestino: $('popDestino').value.trim(), cabo: $('cabo').value.trim(),
+      localRompimento: $('localRompimento').value.trim(), observacoes: $('observacoes').value.trim(),
+      pontos: pontos, materiais: materiais, semMateriais: $('semMateriais').checked,
+      registradoNoAparelho: new Date().toISOString()
+    };
+  }
+  function validar(p) {
+    var e = [];
+    if (!p.tecnico) e.push('Digite seu nome.');
+    if (!p.cidade) e.push('Digite a cidade de origem.');
+    if (!p.dataAtendimento) e.push('Informe a data do atendimento.');
+    else if (p.dataAtendimento > hojeISO()) e.push('A data do atendimento está no futuro.');
+    if (!p.popOrigem || !p.popDestino) e.push('Informe as pontas de origem e destino.');
+    if (!localValido(p.localRompimento)) e.push('Local do rompimento: use o GPS ou cole coordenadas/link do Maps.');
+    p.pontos.forEach(function (pt, i) {
+      var n = 'Ponto ' + (i ? 'B' : 'A');
+      if (!localValido(pt.local)) e.push(n + ': localização inválida.');
+      if (!pt.situacao) e.push(n + ': escolha a situação da caixa.');
+      if (['Caixa existente', 'Caixa substituída', 'Caixa removida'].indexOf(pt.situacao) >= 0 && !pt.caixaExistente) e.push(n + ': informe qual é a caixa existente.');
+    });
+    if (!p.materiais.length && !p.semMateriais) e.push('Adicione os materiais ou marque "Não utilizei materiais".');
+    p.materiais.forEach(function (m, i) {
+      var n = 'Material ' + (i + 1);
+      if (!m.material) e.push(n + ': informe o material.');
+      if (!m.unidade) e.push(n + ': escolha a unidade.');
+      if (!(num(m.qtdUtilizada) > 0)) e.push(n + ': quantidade utilizada inválida.');
+      if (!m.origem) e.push(n + ': escolha a origem.');
+      if (m.origem === 'Outra origem' && !m.justificativa) e.push(n + ': diga de onde veio o material.');
+      if (m.sobra && !(num(m.qtdRetirada) >= num(m.qtdUtilizada))) e.push(n + ': a retirada deve ser maior ou igual à utilizada.');
+    });
+    return e;
+  }
+  function mostrarErros(l) {
+    var box = $('erros');
+    if (!l || !l.length) { box.hidden = true; return; }
+    box.innerHTML = '<b>Corrija antes de salvar:</b><ul></ul>';
+    l.forEach(function (t) { var li = document.createElement('li'); li.textContent = t; q(box, 'ul').appendChild(li); });
+    box.hidden = false;
+    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  function preencherForm(d, fotosDU) {
+    ['tecnico', 'cidade', 'dataAtendimento', 'osIxc', 'popOrigem', 'popDestino', 'cabo', 'localRompimento', 'observacoes']
+      .forEach(function (k) { if (d[k] != null) $(k).value = d[k]; });
+    ['A', 'B'].forEach(function (k, i) {
+      var pt = (d.pontos || [])[i] || {};
+      $('local' + k).value = pt.local || ''; $('situacao' + k).value = pt.situacao || '';
+      $('caixaExistente' + k).value = pt.caixaExistente || ''; $('caixaNova' + k).value = pt.caixaNova || '';
+      $('fibras' + k).value = pt.fibras || ''; $('obs' + k).value = pt.observacoes || '';
+      atualizarPonto(k);
+    });
+    $('materiais').innerHTML = '';
+    (d.materiais || []).forEach(function (m) {
+      addMat(Object.assign({}, m, { sobra: m.sobra || String(m.qtdRetirada || '').trim() !== '' }));
+    });
+    $('semMateriais').checked = !!d.semMateriais;
+    fotos = fotosDU || { A: [], B: [] }; desenharFotos('A'); desenharFotos('B');
+  }
+
+  // ---------- Rascunho ----------
+  function salvarDepois() { clearTimeout(timerSalvar); timerSalvar = setTimeout(salvar, 600); }
+  function salvar() {
+    if ($('f').hidden) return;
+    var pacote = { estado: estado, dados: coletar(false), fotos: fotos };
+    try { localStorage.setItem(CHAVE_RASC, JSON.stringify(pacote)); }
+    catch (e) { try { pacote.fotos = { A: [], B: [] }; localStorage.setItem(CHAVE_RASC, JSON.stringify(pacote)); } catch (e2) {} }
+    $('statusRascunho').textContent = 'Rascunho salvo às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+  function restaurarRascunho() {
+    var bruto = null;
+    try { bruto = localStorage.getItem(CHAVE_RASC); } catch (e) {}
+    if (!bruto) return false;
+    try {
+      var r = JSON.parse(bruto);
+      estado = r.estado || { idEnvio: novoId() };
+      preencherForm(r.dados, r.fotos);
+      return true;
+    } catch (e) { return false; }
+  }
+  function limparRascunho() { try { localStorage.removeItem(CHAVE_RASC); } catch (e) {} }
+  function formularioLimpo() {
+    $('f').reset();
+    $('materiais').innerHTML = '';
+    fotos = { A: [], B: [] }; desenharFotos('A'); desenharFotos('B');
+    ['A', 'B'].forEach(atualizarPonto);
+    document.querySelectorAll('.dica').forEach(function (x) { x.textContent = ''; });
+    estado = { idEnvio: novoId() };
+    $('dataAtendimento').value = hojeISO();
+    try {
+      var ident = JSON.parse(localStorage.getItem(CHAVE_ID) || '{}');
+      if (ident.tecnico) $('tecnico').value = ident.tecnico;
+      if (ident.cidade) $('cidade').value = ident.cidade;
+    } catch (e) {}
+    mostrarErros([]);
+    $('statusRascunho').textContent = 'Funciona sem internet';
+  }
+
+  // ---------- Fila e envios ----------
+  function el(tag, cls, txt) { var x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; }
+
+  function atualizarPainel() {
+    var on = navigator.onLine;
+    $('statusRede').textContent = on ? 'Com sinal' : 'Sem sinal';
+    $('statusRede').className = 'pill ' + (on ? 'on' : 'off');
+    return Promise.all([Fila.todos(), Fila.historico()]).then(function (r) {
+      var itens = r[0], hist = r[1];
+      var box = $('filaLista'); box.innerHTML = '';
+      var aguardando = itens.filter(function (i) { return i.status !== 'recusado'; }).length;
+      $('contFila').textContent = itens.length ? itens.length + ' no aparelho' : '';
+      $('enviarAgora').hidden = !aguardando;
+      if (!itens.length) box.appendChild(el('div', 'vazio', 'Nada pendente. Tudo o que foi registrado já chegou na planilha.'));
+      itens.forEach(function (it) {
+        var d = el('div', 'item');
+        d.appendChild(el('b', null, (it.status === 'recusado' ? '⚠️ ' : '⏳ ') + it.resumo));
+        d.appendChild(el('div', 'meta', 'Salvo em ' + hora(it.criadoEm) + (it.status === 'recusado' ? ' · recusado pela planilha' : ' · aguardando sinal')));
+        if (it.status === 'recusado') {
+          d.appendChild(el('div', 'erro', (it.erros || []).join(' ')));
+          var ac = el('div', 'acoes');
+          var b1 = el('button', 'mini', 'Corrigir'); b1.type = 'button'; b1.onclick = function () { corrigir(it); };
+          var b2 = el('button', 'mini perigo', 'Descartar'); b2.type = 'button';
+          b2.onclick = function () { if (confirm('Descartar este registro? Ele não será enviado.')) Fila.remover(it.idEnvio).then(atualizarPainel); };
+          ac.appendChild(b1); ac.appendChild(b2); d.appendChild(ac);
+        }
+        box.appendChild(d);
+      });
+      var rec = $('recLista'); rec.innerHTML = '';
+      if (!hist.length) rec.appendChild(el('div', 'vazio', 'Nenhum envio ainda neste aparelho.'));
+      hist.slice(0, 10).forEach(function (h) {
+        var d = el('div', 'item');
+        d.appendChild(el('b', null, '✅ ' + h.id));
+        d.appendChild(el('div', 'meta', h.resumo + ' · enviado em ' + hora(h.enviadoEm)));
+        rec.appendChild(d);
+      });
+    });
+  }
+
+  function corrigir(it) {
+    var dados = it.dados;
+    var du = { A: [], B: [] };
+    ['A', 'B'].forEach(function (k, i) {
+      du[k] = ((dados.pontos[i] || {}).fotos || []).map(function (f) { return 'data:' + (f.tipo || 'image/jpeg') + ';base64,' + f.base64; });
+    });
+    Fila.remover(it.idEnvio).then(function () {
+      $('sucesso').hidden = true; $('f').hidden = false;
+      estado = { idEnvio: novoId() };
+      preencherForm(dados, du);
+      salvar();
+      mostrarErros(it.erros || []);
+      atualizarPainel();
+    });
+  }
+
+  function registrarSync() {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.ready.then(function (reg) { return reg.sync ? reg.sync.register('enviar-fila') : null; }).catch(function () {});
+  }
+
+  function sincronizar(manual) {
+    if (!configurado()) { if (manual) alert('O app ainda não está configurado (config.js).'); return Promise.resolve(); }
+    if (sincronizando) return Promise.resolve();
+    sincronizando = true;
+    if (manual) { $('enviarAgora').disabled = true; $('enviarAgora').textContent = 'Enviando…'; }
+    return Fila.enviarFila().then(function (res) {
+      if (ultimoEnvio) {
+        var ok = res.enviados.filter(function (x) { return x.idEnvio === ultimoEnvio; })[0];
+        var rec = res.recusados.filter(function (x) { return x.idEnvio === ultimoEnvio; })[0];
+        if (ok) {
+          $('sucTitulo').textContent = 'Registro enviado';
+          $('idGerado').textContent = ok.id;
+          $('sucTexto').textContent = ok.repetido ? 'Este registro já tinha chegado antes; nada foi duplicado.'
+            : (ok.alertas.length ? 'Para o administrativo conferir: ' + ok.alertas.join(' ') : 'Chegou na planilha e no Telegram.');
+          ultimoEnvio = null;
+        } else if (rec) {
+          $('sucTitulo').textContent = 'A planilha recusou o registro';
+          $('sucTexto').textContent = (rec.erros || []).join(' ') + ' Toque em "Corrigir" no quadro Envios.';
+          ultimoEnvio = null;
+        } else if (res.falha && $('sucTexto').textContent === 'Enviando…') {
+          $('sucTexto').textContent = 'Sem conexão com a planilha agora. O registro está guardado e será enviado quando o sinal voltar.';
+        }
+      }
+      if (manual && res.falha) alert('Não foi possível enviar agora (' + res.falha + '). Os registros continuam guardados no aparelho.');
+    }).then(function () {
+      sincronizando = false;
+      $('enviarAgora').disabled = false; $('enviarAgora').textContent = 'Enviar agora';
+      return atualizarPainel();
+    });
+  }
+
+  $('f').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var p = coletar(true);
+    var erros = validar(p);
+    if (erros.length) { mostrarErros(erros); return; }
+    mostrarErros([]);
+    $('enviar').disabled = true;
+    var item = { idEnvio: p.idEnvio, criadoEm: Date.now(), status: 'aguardando', resumo: p.popOrigem + ' ↔ ' + p.popDestino + ' · ' + p.tecnico, dados: p };
+    Fila.gravar(item).then(function () {
+      try { localStorage.setItem(CHAVE_ID, JSON.stringify({ tecnico: p.tecnico, cidade: p.cidade })); } catch (e) {}
+      limparRascunho();
+      ultimoEnvio = item.idEnvio;
+      $('sucTitulo').textContent = 'Registro guardado no aparelho';
+      $('idGerado').textContent = '';
+      $('sucTexto').textContent = navigator.onLine ? 'Enviando…'
+        : 'Sem sinal agora. O registro fica guardado e é enviado quando o celular pegar internet. Ao chegar num lugar com sinal, abra o app para conferir.';
+      $('f').hidden = true; $('avisoRascunho').hidden = true; $('sucesso').hidden = false;
+      window.scrollTo(0, 0);
+      registrarSync();
+      return sincronizar(false);
+    }).catch(function (err) {
+      mostrarErros(['Não foi possível guardar no aparelho: ' + err.message]);
+    }).then(function () { $('enviar').disabled = false; atualizarPainel(); });
+  });
+
+  $('novo').onclick = function () { formularioLimpo(); $('sucesso').hidden = true; $('f').hidden = false; window.scrollTo(0, 0); };
+  $('descartar').onclick = function () {
+    if (!confirm('Descartar o rascunho?')) return;
+    limparRascunho(); formularioLimpo(); $('avisoRascunho').hidden = true;
+  };
+  $('addMat').onclick = function () { addMat(); };
+  $('enviarAgora').onclick = function () { sincronizar(true); };
+  $('semMateriais').addEventListener('change', function () {
+    if (this.checked && document.querySelectorAll('.mat').length) {
+      if (confirm('Remover os materiais adicionados?')) $('materiais').innerHTML = ''; else this.checked = false;
+    }
+    salvarDepois();
+  });
+
+  // ---------- Início ----------
+  (function iniciar() {
+    var c = null;
+    try { c = JSON.parse(localStorage.getItem(CHAVE_CAD) || 'null'); } catch (e) {}
+    aplicarCadastros(c ? c.dados : null);
+    $('secA').innerHTML = htmlPonto('A', 2);
+    $('secB').innerHTML = htmlPonto('B', 3);
+    ['A', 'B'].forEach(function (k) {
+      preencher($('situacao' + k), CAD.situacoes);
+      $('situacao' + k).addEventListener('change', function () { atualizarPonto(k); });
+      ligarFotos(k);
+    });
+    formularioLimpo();
+    if (restaurarRascunho()) $('avisoRascunho').hidden = false;
+    $('f').addEventListener('input', salvarDepois);
+    $('f').addEventListener('change', salvarDepois);
+    $('avisoConfig').hidden = configurado();
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+      navigator.serviceWorker.addEventListener('message', function (ev) {
+        if (ev.data && ev.data.tipo === 'fila') atualizarPainel();
+      });
+    }
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
+
+    atualizarPainel();
+    atualizarCadastros();
+    sincronizar(false);
+    setInterval(function () { sincronizar(false); }, 60000);
+    window.addEventListener('online', function () { atualizarPainel(); sincronizar(false); atualizarCadastros(); });
+    window.addEventListener('offline', atualizarPainel);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) sincronizar(false); });
+  })();
+</script>
+</body>
+</html>
