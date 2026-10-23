@@ -141,7 +141,10 @@
   var CFG = self.APP_CONFIG || {};
   var PADRAO = {
     tecnicos: [], cidades: [], pops: [], materiais: [],
-    origens: ['Estoque da filial', 'Estoque da rota/equipe', 'Outra origem'],
+    origens: ['SJK - Almoxarifado Filial', 'SJK - Almoxarifado Rota', 'NMGA - Almoxarifado Filial', 'NMGA - Almoxarifado Rota',
+      'DIO - Almoxarifado Filial', 'DIO - Almoxarifado Rota', 'NMM - Almoxarifado Filial', 'NMM - Almoxarifado Rota',
+      'LRV - Almoxarifado Filial', 'LRV - Almoxarifado Rota', 'VAZ - Almoxarifado Filial', 'VAZ - Almoxarifado Rota',
+      'CZN - Almoxarifado Filial', 'CZN - Almoxarifado Rota', 'Outra origem'],
     situacoes: ['Caixa existente', 'Caixa nova', 'Caixa substituída', 'Caixa removida'],
     unidades: ['m', 'un', 'pç', 'kg', 'rolo', 'cx']
   };
@@ -170,6 +173,20 @@
     var dl = $(id); dl.innerHTML = '';
     itens.forEach(function (t) { var o = document.createElement('option'); o.value = t; dl.appendChild(o); });
   }
+  function preencherOrigens(sel, itens) {
+    sel.innerHTML = '';
+    sel.appendChild(opt('', 'Selecione o almoxarifado…'));
+    var grupos = [['Filial (loja · FTTx)', /almoxarifado\s+filial/i], ['Rota (backbone entre POPs/cidades)', /almoxarifado\s+rota/i]];
+    var usados = {};
+    grupos.forEach(function (g) {
+      var og = document.createElement('optgroup'); og.label = g[0];
+      itens.forEach(function (i) { if (g[1].test(i)) { og.appendChild(opt(i)); usados[i] = 1; } });
+      if (og.children.length) sel.appendChild(og);
+    });
+    var resto = itens.filter(function (i) { return !usados[i]; });
+    resto.forEach(function (i) { sel.appendChild(opt(i)); });
+  }
+  function ultimaOrigem() { try { return localStorage.getItem('romp_ultima_origem') || ''; } catch (e) { return ''; } }
   function rotuloMat(m) { return m.codigo + ' – ' + m.descricao; }
   function acharMat(texto) {
     var t = String(texto || '').trim().toLowerCase(); if (!t) return null;
@@ -273,17 +290,22 @@
       '<label>Material *<input class="m-cod" list="dlMat" placeholder="escolha ou digite"></label>' +
       '<div class="row2"><label>Qtd. utilizada *<input class="m-util" inputmode="decimal"></label>' +
       '<label>Unidade *<select class="m-un"></select></label></div>' +
-      '<label>Origem *<select class="m-orig"></select></label>' +
+      '<label>Saiu de qual almoxarifado? *<select class="m-orig"></select></label>' +
       '<div class="m-fil" hidden><label class="chk"><input type="checkbox" class="m-sobra"> Retirei mais do que usei (sobra para devolver)</label>' +
-      '<label class="m-retw" hidden>Qtd. retirada da filial *<input class="m-ret" inputmode="decimal"></label><span class="m-dev"></span></div>' +
+      '<label class="m-retw" hidden>Qtd. retirada do almoxarifado *<input class="m-ret" inputmode="decimal"></label><span class="m-dev"></span></div>' +
       '<label class="m-justw" hidden>De onde veio? *<input class="m-just" placeholder="ex.: emprestado da equipe X"></label>' +
       '<label>Observações<input class="m-obs"></label>';
     preencher(q(div, '.m-un'), CAD.unidades, '—');
-    preencher(q(div, '.m-orig'), CAD.origens);
+    preencherOrigens(q(div, '.m-orig'), CAD.origens);
     q(div, '.m-cod').value = d.material || '';
     if (d.unidade) { garantirUnidade(q(div, '.m-un'), d.unidade); q(div, '.m-un').value = d.unidade; }
     q(div, '.m-util').value = d.qtdUtilizada || '';
-    q(div, '.m-orig').value = d.origem || '';
+    var origemIni = d.origem || (d.material === undefined ? ultimaOrigem() : '');
+    if (origemIni && CAD.origens.indexOf(origemIni) < 0) q(div, '.m-orig').appendChild(opt(origemIni));
+    q(div, '.m-orig').value = origemIni;
+    q(div, '.m-orig').addEventListener('change', function () {
+      if (this.value && this.value !== 'Outra origem') { try { localStorage.setItem('romp_ultima_origem', this.value); } catch (e) {} }
+    });
     q(div, '.m-sobra').checked = !!d.sobra;
     q(div, '.m-ret').value = d.qtdRetirada || '';
     q(div, '.m-just').value = d.justificativa || '';
@@ -302,7 +324,7 @@
   function atualizarMat(div) {
     var un = q(div, '.m-un').value;
     var orig = q(div, '.m-orig').value;
-    var filial = orig === 'Estoque da filial';
+    var filial = !!orig && orig !== 'Outra origem';
     q(div, '.m-fil').hidden = !filial;
     q(div, '.m-justw').hidden = orig !== 'Outra origem';
     var sobra = filial && q(div, '.m-sobra').checked;
@@ -343,7 +365,7 @@
     });
     var materiais = Array.prototype.map.call(document.querySelectorAll('.mat'), function (div) {
       var orig = q(div, '.m-orig').value;
-      var sobra = orig === 'Estoque da filial' && q(div, '.m-sobra').checked;
+      var sobra = !!orig && orig !== 'Outra origem' && q(div, '.m-sobra').checked;
       return {
         material: q(div, '.m-cod').value.trim(), unidade: q(div, '.m-un').value,
         qtdUtilizada: q(div, '.m-util').value.trim(), origem: orig,

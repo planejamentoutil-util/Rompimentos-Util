@@ -1,7 +1,7 @@
 // Service worker: guarda o app no aparelho (abre sem internet) e envia a fila quando o sinal volta.
 importScripts('config.js', 'fila.js');
 
-var CACHE = 'rompimentos-v1';
+var CACHE = 'rompimentos-v2';
 var ARQUIVOS = ['./', 'index.html', 'config.js', 'fila.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', function (e) {
