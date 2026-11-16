@@ -59,6 +59,13 @@
   .row2 > label { min-width:0; }
   input[type=date] { -webkit-appearance:none; appearance:none; min-width:0; max-width:100%; display:block; min-height:46px; text-align:left; }
   input[type=date]::-webkit-date-and-time-value { text-align:left; }
+  .sug { border:1px solid var(--borda); border-radius:8px; margin-top:4px; max-height:280px; overflow-y:auto; background:#fff; box-shadow:0 4px 12px rgba(0,0,0,.08); }
+  .sug button { display:block; width:100%; text-align:left; background:#fff; color:inherit; border-radius:0; border-bottom:1px solid #eef1f5; padding:11px 12px; font-size:15px; }
+  .sug button:last-child { border-bottom:0; }
+  .sug button:active { background:#e3ebf5; }
+  .sug b { color:var(--azul); }
+  .sug small { display:block; color:#555; font-size:12px; margin-top:2px; }
+  .sug .nada { padding:11px 12px; color:#555; font-size:14px; }
 </style>
 </head>
 <body>
@@ -105,8 +112,10 @@
   <form id="f" novalidate>
     <section class="card">
       <h2>1. Onde e o quê</h2>
-      <label>POP *<input id="pop" list="dlPop" autocapitalize="characters" placeholder="código ou nome, ex.: SJK-ST1">
-        <small class="dica" id="popDica"></small></label>
+      <label for="pop">POP *</label>
+      <input id="pop" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="toque para escolher ou digite">
+      <div id="sugPop" class="sug" hidden></div>
+      <small class="dica" id="popDica"></small>
       <label>O que é o equipamento? *<select id="cat" disabled></select></label>
       <label>Qual equipamento? *<select id="ativo" disabled></select>
         <small class="dica" id="ativoDica"></small></label>
@@ -209,6 +218,38 @@
     var cod = t.split(' – ')[0].trim().toUpperCase();
     return BASE.pops.filter(function (p) { return p.cod.toUpperCase() === cod || p.nome.toUpperCase() === t.toUpperCase(); })[0] || null;
   }
+  // Lista de POPs própria (o datalist do navegador não aparece no iPhone)
+  function semAcento(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+  function mostrarSug() {
+    var box = $('sugPop'), t = semAcento($('pop').value.trim());
+    var p = popAtual();
+    if (p && semAcento(p.cod + ' – ' + p.nome) === t) { box.hidden = true; return; }
+    var termos = t.split(/\s+/).filter(Boolean);
+    var achados = BASE.pops.filter(function (x) {
+      var alvo = semAcento(x.cod + ' ' + x.nome + ' ' + x.cidade);
+      return termos.every(function (w) { return alvo.indexOf(w) !== -1; });
+    });
+    box.innerHTML = '';
+    if (!BASE.pops.length) { box.appendChild(el('div', 'nada', 'Lista de POPs não baixada ainda. Abra com internet.')); box.hidden = false; return; }
+    if (!achados.length) { box.appendChild(el('div', 'nada', 'Nenhum POP com esse nome.')); box.hidden = false; return; }
+    achados.forEach(function (x) {
+      var b = el('button'); b.type = 'button';
+      b.appendChild(el('b', null, x.cod));
+      b.appendChild(document.createTextNode(' · ' + x.nome));
+      if (x.cidade) b.appendChild(el('small', null, x.cidade));
+      // pointerdown roda antes do campo perder o foco
+      b.addEventListener('pointerdown', function (ev) {
+        ev.preventDefault();
+        $('pop').value = x.cod + ' – ' + x.nome;
+        box.hidden = true;
+        $('pop').blur();
+        aoPop(); salvarDepois();
+      });
+      box.appendChild(b);
+    });
+    box.hidden = false;
+  }
+
   function catAtual() { var v = $('cat').value; return BASE.cats.filter(function (c) { return c.nome === v; })[0] || null; }
 
   function aoPop() {
@@ -458,8 +499,11 @@
     }).then(function () { $('enviar').disabled = false; atualizarPainel(); });
   });
 
-  $('pop').addEventListener('input', aoPop);
+  $('pop').addEventListener('input', function () { aoPop(); mostrarSug(); });
   $('pop').addEventListener('change', aoPop);
+  $('pop').addEventListener('focus', mostrarSug);
+  $('pop').addEventListener('click', mostrarSug);
+  $('pop').addEventListener('blur', function () { setTimeout(function () { $('sugPop').hidden = true; }, 200); });
   $('cat').addEventListener('change', aoCat);
   $('ativo').addEventListener('change', aoAtivo);
   $('tipo').addEventListener('change', aoTipo);
