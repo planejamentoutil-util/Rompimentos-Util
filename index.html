@@ -61,6 +61,9 @@
   .ok h2 { color:var(--ok); }
   .id { font-size:24px; font-weight:800; margin:6px 0 4px; }
   [hidden] { display:none !important; }
+  .abas { display:flex; background:var(--azul); padding:0 12px 10px; gap:8px; }
+  .abas a { flex:1; text-align:center; padding:9px 6px; border-radius:8px; color:#fff; text-decoration:none; font-size:14px; font-weight:600; background:rgba(255,255,255,.12); }
+  .abas a.ativa { background:#fff; color:var(--azul); }
 </style>
 </head>
 <body>
@@ -71,6 +74,10 @@
   </div>
   <span id="statusRede" class="pill"></span>
 </header>
+<nav class="abas">
+  <a href="index.html" class="ativa">Rompimento</a>
+  <a href="manutencao.html">Manutenção de POP</a>
+</nav>
 <main>
   <div id="avisoConfig" class="erros" hidden>
     App ainda não configurado: o arquivo config.js precisa da URL e da chave da planilha. Os registros ficam guardados, mas não são enviados.
@@ -494,7 +501,11 @@
         if (it.status === 'recusado') {
           d.appendChild(el('div', 'erro', (it.erros || []).join(' ')));
           var ac = el('div', 'acoes');
-          var b1 = el('button', 'mini', 'Corrigir'); b1.type = 'button'; b1.onclick = function () { corrigir(it); };
+          var b1 = el('button', 'mini', 'Corrigir'); b1.type = 'button';
+          b1.onclick = function () {
+            if (it.destino === 'manut') location.href = 'manutencao.html#corrigir=' + encodeURIComponent(it.idEnvio);
+            else corrigir(it);
+          };
           var b2 = el('button', 'mini perigo', 'Descartar'); b2.type = 'button';
           b2.onclick = function () { if (confirm('Descartar este registro? Ele não será enviado.')) Fila.remover(it.idEnvio).then(atualizarPainel); };
           ac.appendChild(b1); ac.appendChild(b2); d.appendChild(ac);
@@ -628,6 +639,17 @@
       });
     }
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
+
+    // veio da aba Manutenção para corrigir um rompimento recusado
+    var mh = /corrigir=([^&]+)/.exec(location.hash);
+    if (mh) {
+      var alvo = decodeURIComponent(mh[1]);
+      history.replaceState(null, '', location.pathname);
+      Fila.todos().then(function (l) {
+        var it = l.filter(function (x) { return x.idEnvio === alvo; })[0];
+        if (it) corrigir(it);
+      });
+    }
 
     atualizarPainel();
     atualizarCadastros();

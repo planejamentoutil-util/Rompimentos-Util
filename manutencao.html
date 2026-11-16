@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1f3a5f">
+<title>Manutenção de POP</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root { --azul:#1f3a5f; --azul2:#2d5a8c; --borda:#c9d3df; --fundo:#f2f5f9; --erro:#b3261e; --ok:#1e6b34; --alerta:#8a5a00; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--fundo); color:#1b1f24; font-size:16px; }
+  header { background:var(--azul); color:#fff; padding:12px 16px; position:sticky; top:0; z-index:5; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  header h1 { margin:0; font-size:18px; }
+  header small { opacity:.85; font-size:12px; display:block; }
+  .pill { font-size:12px; font-weight:700; padding:5px 10px; border-radius:999px; white-space:nowrap; }
+  .pill.on { background:#d9f2df; color:var(--ok); }
+  .pill.off { background:#fde2d5; color:#9a3412; }
+  .abas { display:flex; background:var(--azul); padding:0 12px 10px; gap:8px; }
+  .abas a { flex:1; text-align:center; padding:9px 6px; border-radius:8px; color:#fff; text-decoration:none; font-size:14px; font-weight:600; background:rgba(255,255,255,.12); }
+  .abas a.ativa { background:#fff; color:var(--azul); }
+  main { padding:12px; max-width:640px; margin:0 auto 80px; }
+  .card { background:#fff; border:1px solid var(--borda); border-radius:12px; padding:14px; margin-bottom:12px; }
+  h2 { font-size:16px; margin:0 0 10px; color:var(--azul); }
+  label { display:block; font-size:14px; font-weight:600; margin:10px 0 0; }
+  input, select, textarea { width:100%; font-size:16px; padding:11px 10px; margin-top:4px; border:1px solid var(--borda); border-radius:8px; background:#fff; font-family:inherit; color:inherit; }
+  select:disabled { background:#eef1f5; color:#8b95a8; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  button { font-size:15px; border-radius:8px; border:0; padding:11px 14px; cursor:pointer; font-family:inherit; }
+  .pri { width:100%; background:var(--azul2); color:#fff; font-size:17px; font-weight:700; padding:15px; }
+  .pri:disabled { opacity:.6; }
+  .sec { background:#e3ebf5; color:var(--azul); font-weight:600; width:100%; margin-top:10px; }
+  .mini { background:#e3ebf5; color:var(--azul); font-weight:600; padding:7px 10px; font-size:13px; }
+  .mini.perigo { background:#fdecea; color:var(--erro); }
+  .dica { display:block; color:#555; font-size:12px; font-weight:400; margin-top:4px; }
+  .dica.boa { color:var(--ok); font-weight:600; }
+  .dica.ruim { color:var(--erro); font-weight:600; }
+  .erros { background:#fdecea; border:1px solid #f1b0ab; color:var(--erro); border-radius:10px; padding:10px 14px; margin-bottom:12px; }
+  .erros ul { margin:6px 0 0; padding-left:18px; }
+  .aviso { background:#fff8e1; border:1px solid #f0d58a; border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:14px; display:flex; justify-content:space-between; gap:10px; align-items:center; }
+  .aviso button { background:#fff; border:1px solid #d9b95c; padding:6px 10px; font-size:13px; }
+  .painel-top { display:flex; justify-content:space-between; align-items:center; }
+  .item { border-top:1px solid #e6ebf1; padding:10px 0; font-size:14px; }
+  .item:first-child { border-top:0; }
+  .item b { display:block; }
+  .item .meta { color:#555; font-size:12px; }
+  .item .erro { color:var(--erro); font-size:13px; margin-top:4px; }
+  .item .acoes { display:flex; gap:8px; margin-top:6px; }
+  .vazio { color:#555; font-size:14px; }
+  details summary { cursor:pointer; color:var(--azul); font-weight:600; font-size:14px; margin-top:10px; }
+  .ok { border-color:#9fd0ac; background:#eef8f0; }
+  .ok h2 { color:var(--ok); }
+  .id { font-size:24px; font-weight:800; margin:6px 0 4px; }
+  .base { font-size:12px; color:#555; margin:-4px 0 12px; display:flex; justify-content:space-between; gap:8px; align-items:center; }
+  .base button { padding:5px 9px; font-size:12px; background:#e3ebf5; color:var(--azul); font-weight:600; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Manutenção de POP</h1>
+    <small id="statusRascunho">Funciona sem internet</small>
+  </div>
+  <span id="statusRede" class="pill"></span>
+</header>
+<nav class="abas">
+  <a href="index.html">Rompimento</a>
+  <a href="manutencao.html" class="ativa">Manutenção de POP</a>
+</nav>
+<main>
+  <div id="avisoConfig" class="erros" hidden>
+    Manutenção ainda não configurada: o config.js precisa da MANUT_URL e da MANUT_CHAVE. Os registros ficam guardados, mas não são enviados.
+  </div>
+  <div id="avisoSemBase" class="erros" hidden>
+    Este celular ainda não tem a lista de POPs e equipamentos. Abra esta tela uma vez com internet para baixar. Depois funciona sem sinal.
+  </div>
+
+  <section class="card" id="painel">
+    <div class="painel-top"><h2 style="margin:0">Envios</h2><span id="contFila" class="dica" style="margin:0"></span></div>
+    <div id="filaLista" style="margin-top:8px"></div>
+    <button type="button" id="enviarAgora" class="sec" hidden>Enviar agora</button>
+    <details><summary>Enviados recentemente</summary><div id="recLista"></div></details>
+  </section>
+
+  <div class="base"><span id="baseInfo"></span><button type="button" id="baixarBase">Atualizar lista</button></div>
+
+  <div id="avisoRascunho" class="aviso" hidden>
+    <span>Rascunho restaurado deste aparelho.</span>
+    <button type="button" id="descartar">Descartar</button>
+  </div>
+
+  <div id="sucesso" class="card ok" hidden>
+    <h2 id="sucTitulo">Registro guardado</h2>
+    <div class="id" id="idGerado"></div>
+    <div id="sucTexto" style="font-size:14px"></div>
+    <button type="button" id="novo" class="pri" style="margin-top:14px">Registrar outra manutenção</button>
+  </div>
+
+  <form id="f" novalidate>
+    <section class="card">
+      <h2>1. Onde e o quê</h2>
+      <label>POP *<input id="pop" list="dlPop" autocapitalize="characters" placeholder="código ou nome, ex.: SJK-ST1">
+        <small class="dica" id="popDica"></small></label>
+      <label>O que é o equipamento? *<select id="cat" disabled></select></label>
+      <label>Qual equipamento? *<select id="ativo" disabled></select>
+        <small class="dica" id="ativoDica"></small></label>
+      <label id="wrapNovo" hidden>Identificação do novo equipamento<input id="descAtivo" maxlength="200" placeholder="marca, sala, capacidade… (opcional)"></label>
+      <label>Tipo de manutenção *<select id="tipo" disabled></select></label>
+    </section>
+
+    <section class="card">
+      <h2>2. O que foi feito</h2>
+      <div class="row2">
+        <label>Data *<input id="data" type="date"></label>
+        <label>Custo (R$)<input id="custo" inputmode="decimal" placeholder="opcional"></label>
+      </div>
+      <label>Descrição do serviço *<textarea id="desc" rows="3" placeholder="o que foi feito"></textarea></label>
+      <label>Quem executou *<input id="resp" placeholder="técnico ou empresa"></label>
+      <div class="row2">
+        <label id="wrapHor" hidden>Horímetro (h)<input id="hor" inputmode="decimal" placeholder="opcional"></label>
+        <label id="wrapLit" hidden>Litros abastecidos *<input id="lit" inputmode="decimal"></label>
+        <label id="wrapQtd" hidden>Qtd. de baterias *<input id="qtd" inputmode="numeric"></label>
+      </div>
+      <label>Observações<textarea id="obs" rows="2"></textarea></label>
+    </section>
+
+    <section class="card">
+      <h2>3. Quem está registrando</h2>
+      <label>Seu nome *<input id="nome" autocomplete="name" placeholder="nome e sobrenome"></label>
+    </section>
+
+    <datalist id="dlPop"></datalist>
+    <div id="erros" class="erros" hidden></div>
+    <button type="submit" id="enviar" class="pri">Salvar e enviar</button>
+  </form>
+</main>
+
+<script src="config.js"></script>
+<script src="fila.js"></script>
+<script>
+  var CFG = self.APP_CONFIG || {};
+  var NOVO = '__NOVO__';
+  var CHAVE_RASC = 'manut_rascunho_v1', CHAVE_BASE = 'manut_base', CHAVE_ID = 'manut_identidade';
+  var BASE = { pops: [], cats: [], ativos: [], proximos: {} }, BASE_EM = 0;
+  var estado = { idEnvio: null };
+  var timerSalvar = null, ultimoEnvio = null, sincronizando = false, filaAtual = [];
+
+  function $(id) { return document.getElementById(id); }
+  function configurado() { return /^https:\/\/script\.google\.com\/.+\/exec$/.test(String(CFG.MANUT_URL || '')); }
+  function novoId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+  }
+  function hojeISO() { var d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); }
+  function hora(ms) { return new Date(ms).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+  function ler(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+  function gravarLS(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function num(v) {
+    var s = String(v == null ? '' : v).trim(); if (!s) return NaN;
+    if (s.indexOf(',') !== -1) s = s.replace(/\./g, '').replace(',', '.');
+    return Number(s);
+  }
+  function opcoes(sel, itens, rotulo) {
+    sel.innerHTML = '';
+    var o = document.createElement('option'); o.value = ''; o.textContent = rotulo; sel.appendChild(o);
+    itens.forEach(function (it) { var op = document.createElement('option'); op.value = it.v; op.textContent = it.t; sel.appendChild(op); });
+    sel.disabled = itens.length === 0;
+  }
+  function el(tag, cls, txt) { var x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; }
+
+  // ---------- Base (POPs, categorias, equipamentos) guardada no aparelho ----------
+  function aplicarBase(b, em) {
+    BASE = b || { pops: [], cats: [], ativos: [], proximos: {} };
+    BASE_EM = em || 0;
+    var dl = $('dlPop'); dl.innerHTML = '';
+    BASE.pops.forEach(function (p) { var o = document.createElement('option'); o.value = p.cod + ' – ' + p.nome; dl.appendChild(o); });
+    $('avisoSemBase').hidden = BASE.pops.length > 0;
+    $('baseInfo').textContent = BASE_EM ? 'Lista de POPs e equipamentos de ' + hora(BASE_EM) + ' · ' + BASE.pops.length + ' POPs' : 'Lista de POPs ainda não baixada';
+  }
+  function baixarBase(manual) {
+    if (!configurado()) { if (manual) alert('A manutenção ainda não está configurada no config.js.'); return Promise.resolve(); }
+    if (!navigator.onLine) { if (manual) alert('Sem sinal agora. A lista atual continua valendo.'); return Promise.resolve(); }
+    if (manual) { $('baixarBase').disabled = true; $('baixarBase').textContent = 'Baixando…'; }
+    return fetch(CFG.MANUT_URL + '?api=base&chave=' + encodeURIComponent(CFG.MANUT_CHAVE || ''), { redirect: 'follow' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) { if (manual) alert('A planilha recusou: ' + (j.erros || []).join(' ')); return; }
+        var em = Date.now();
+        gravarLS(CHAVE_BASE, JSON.stringify({ em: em, dados: j.base }));
+        var pop = $('pop').value, cat = $('cat').value, ativo = $('ativo').value, tipo = $('tipo').value;
+        aplicarBase(j.base, em);
+        // reaplica a escolha que estava na tela
+        $('pop').value = pop; aoPop(); $('cat').value = cat; aoCat();
+        if (ativo) $('ativo').value = ativo; aoAtivo(); if (tipo) $('tipo').value = tipo; aoTipo();
+      })
+      .catch(function (e) { if (manual) alert('Não foi possível baixar a lista (' + e.message + ').'); })
+      .then(function () { $('baixarBase').disabled = false; $('baixarBase').textContent = 'Atualizar lista'; });
+  }
+
+  // ---------- Cascata POP → categoria → equipamento → tipo ----------
+  function popAtual() {
+    var t = $('pop').value.trim(); if (!t) return null;
+    var cod = t.split(' – ')[0].trim().toUpperCase();
+    return BASE.pops.filter(function (p) { return p.cod.toUpperCase() === cod || p.nome.toUpperCase() === t.toUpperCase(); })[0] || null;
+  }
+  function catAtual() { var v = $('cat').value; return BASE.cats.filter(function (c) { return c.nome === v; })[0] || null; }
+
+  function aoPop() {
+    var p = popAtual(), t = $('pop').value.trim(), dica = $('popDica');
+    if (p) {
+      dica.textContent = p.nome + (p.cidade ? ' · ' + p.cidade : ''); dica.className = 'dica boa';
+      var antes = $('cat').value;
+      opcoes($('cat'), BASE.cats.map(function (c) { return { v: c.nome, t: c.nome }; }), 'Escolha o tipo de equipamento');
+      if (antes) $('cat').value = antes;
+    } else {
+      dica.textContent = t ? (BASE.pops.length ? 'POP não encontrado. Escolha na lista.' : 'Lista de POPs não baixada ainda.') : '';
+      dica.className = 'dica ruim';
+      opcoes($('cat'), [], 'Escolha primeiro o POP');
+    }
+    aoCat();
+  }
+  function novosNaFila(pop, cat) {
+    return filaAtual.filter(function (i) { return i.destino === 'manut' && i.dados.ativo === NOVO && i.dados.pop === pop && i.dados.cat === cat; }).length;
+  }
+  function aoCat() {
+    var p = popAtual(), c = catAtual();
+    if (!p || !c) { opcoes($('ativo'), [], 'Escolha primeiro o equipamento'); aoAtivo(); return; }
+    var lista = BASE.ativos.filter(function (a) { return a.pop === p.cod && a.cat === c.nome; })
+      .map(function (a) { return { v: a.id, t: a.id + (a.desc ? ' – ' + a.desc : '') }; });
+    var prov = (BASE.proximos || {})[p.cod + '|' + c.nome];
+    lista.push({ v: NOVO, t: '➕ Novo equipamento' + (prov ? ' (provável ' + prov + ')' : '') });
+    var antes = $('ativo').value;
+    opcoes($('ativo'), lista, lista.length > 1 ? 'Já cadastrado ou novo?' : 'Nenhum cadastrado ainda');
+    $('ativo').value = antes && lista.some(function (i) { return i.v === antes; }) ? antes : (lista.length === 1 ? NOVO : '');
+    aoAtivo();
+  }
+  function aoAtivo() {
+    var p = popAtual(), c = catAtual(), novo = $('ativo').value === NOVO;
+    $('wrapNovo').hidden = !novo;
+    var dica = $('ativoDica'); dica.textContent = ''; dica.className = 'dica';
+    if (novo && p && c) {
+      var n = novosNaFila(p.cod, c.nome);
+      dica.textContent = n
+        ? 'Atenção: já tem ' + n + ' equipamento(s) novo(s) deste tipo neste POP esperando sinal neste celular. Se for o mesmo, espere enviar e atualize a lista antes de registrar outra manutenção nele.'
+        : 'O número do equipamento é gerado pela planilha quando o registro chegar.';
+      dica.className = n ? 'dica ruim' : 'dica';
+    }
+    var antes = $('tipo').value, tipos = c ? c.tipos : [];
+    opcoes($('tipo'), tipos.map(function (t) { return { v: t, t: t }; }), 'Escolha o tipo');
+    if (antes && tipos.indexOf(antes) !== -1) $('tipo').value = antes;
+    else if (novo && tipos.indexOf('Instalação') !== -1) $('tipo').value = 'Instalação';
+    $('wrapHor').hidden = !(c && /gerador/i.test(c.nome));
+    aoTipo();
+  }
+  function aoTipo() {
+    var t = $('tipo').value;
+    $('wrapLit').hidden = !/abastec/i.test(t);
+    $('wrapQtd').hidden = !(/bateria/i.test(t) && /inclus|substitu/i.test(t));
+  }
+
+  // ---------- Coleta e validação ----------
+  function coletar() {
+    var p = popAtual();
+    return {
+      idEnvio: estado.idEnvio,
+      pop: p ? p.cod : $('pop').value.trim(), cat: $('cat').value, ativo: $('ativo').value,
+      descAtivo: $('wrapNovo').hidden ? '' : $('descAtivo').value.trim(),
+      tipo: $('tipo').value, data: $('data').value, desc: $('desc').value.trim(), resp: $('resp').value.trim(),
+      hor: $('wrapHor').hidden ? '' : $('hor').value.trim(),
+      lit: $('wrapLit').hidden ? '' : $('lit').value.trim(),
+      qtd: $('wrapQtd').hidden ? '' : $('qtd').value.trim(),
+      custo: $('custo').value.trim(), obs: $('obs').value.trim(), nome: $('nome').value.trim(),
+      registradoNoAparelho: new Date().toISOString()
+    };
+  }
+  function validar(d) {
+    var e = [];
+    if (!popAtual()) e.push('Escolha o POP na lista.');
+    if (!d.cat) e.push('Escolha o tipo de equipamento.');
+    if (!d.ativo) e.push('Escolha o equipamento (ou "Novo equipamento").');
+    if (!d.tipo) e.push('Escolha o tipo de manutenção.');
+    if (!d.data) e.push('Informe a data.');
+    else if (d.data > hojeISO()) e.push('A data está no futuro.');
+    if (!d.desc) e.push('Descreva o serviço feito.');
+    if (!d.resp) e.push('Informe quem executou.');
+    if (!d.nome) e.push('Digite seu nome.');
+    if (!$('wrapLit').hidden && !(num(d.lit) > 0)) e.push('Informe os litros abastecidos.');
+    if (!$('wrapQtd').hidden && !(num(d.qtd) > 0)) e.push('Informe a quantidade de baterias.');
+    if (d.hor && isNaN(num(d.hor))) e.push('Horímetro inválido.');
+    if (d.custo && isNaN(num(d.custo.replace(/[R$\s]/g, '')))) e.push('Custo inválido.');
+    return e;
+  }
+  function mostrarErros(l) {
+    var box = $('erros');
+    if (!l || !l.length) { box.hidden = true; return; }
+    box.innerHTML = '<b>Corrija antes de salvar:</b><ul></ul>';
+    l.forEach(function (t) { box.querySelector('ul').appendChild(el('li', null, t)); });
+    box.hidden = false;
+    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  function preencherForm(d) {
+    $('pop').value = d.pop || ''; aoPop();
+    $('cat').value = d.cat || ''; aoCat();
+    $('ativo').value = d.ativo || ''; aoAtivo();
+    $('tipo').value = d.tipo || ''; aoTipo();
+    ['descAtivo', 'data', 'desc', 'resp', 'hor', 'lit', 'qtd', 'custo', 'obs', 'nome'].forEach(function (k) { if (d[k] != null) $(k).value = d[k]; });
+  }
+
+  // ---------- Rascunho ----------
+  function salvarDepois() { clearTimeout(timerSalvar); timerSalvar = setTimeout(salvar, 600); }
+  function salvar() {
+    if ($('f').hidden) return;
+    gravarLS(CHAVE_RASC, JSON.stringify({ estado: estado, dados: coletar() }));
+    $('statusRascunho').textContent = 'Rascunho salvo às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+  function restaurarRascunho() {
+    var bruto = ler(CHAVE_RASC); if (!bruto) return false;
+    try { var r = JSON.parse(bruto); estado = r.estado || { idEnvio: novoId() }; preencherForm(r.dados || {}); return true; }
+    catch (e) { return false; }
+  }
+  function limparRascunho() { try { localStorage.removeItem(CHAVE_RASC); } catch (e) {} }
+  function formularioLimpo() {
+    $('f').reset();
+    estado = { idEnvio: novoId() };
+    $('data').value = hojeISO();
+    var ident = {};
+    try { ident = JSON.parse(ler(CHAVE_ID) || '{}'); } catch (e) {}
+    if (!ident.nome) { try { ident.nome = (JSON.parse(ler('romp_identidade') || '{}')).tecnico || ''; } catch (e) {} }
+    $('nome').value = ident.nome || '';
+    $('pop').value = ident.pop || '';
+    aoPop();
+    mostrarErros([]);
+    $('statusRascunho').textContent = 'Funciona sem internet';
+  }
+
+  // ---------- Fila e envios (a mesma fila do rompimento) ----------
+  function atualizarPainel() {
+    var on = navigator.onLine;
+    $('statusRede').textContent = on ? 'Com sinal' : 'Sem sinal';
+    $('statusRede').className = 'pill ' + (on ? 'on' : 'off');
+    return Promise.all([Fila.todos(), Fila.historico()]).then(function (r) {
+      var itens = r[0], hist = r[1];
+      filaAtual = itens;
+      var box = $('filaLista'); box.innerHTML = '';
+      var aguardando = itens.filter(function (i) { return i.status !== 'recusado'; }).length;
+      $('contFila').textContent = itens.length ? itens.length + ' no aparelho' : '';
+      $('enviarAgora').hidden = !aguardando;
+      if (!itens.length) box.appendChild(el('div', 'vazio', 'Nada pendente. Tudo o que foi registrado já chegou na planilha.'));
+      itens.forEach(function (it) {
+        var d = el('div', 'item');
+        var rot = it.destino === 'manut' ? '🔧 ' : '🧵 ';
+        d.appendChild(el('b', null, (it.status === 'recusado' ? '⚠️ ' : '⏳ ') + rot + it.resumo));
+        d.appendChild(el('div', 'meta', 'Salvo em ' + hora(it.criadoEm) + (it.status === 'recusado' ? ' · recusado pela planilha' : ' · aguardando sinal')));
+        if (it.status === 'recusado') {
+          d.appendChild(el('div', 'erro', (it.erros || []).join(' ')));
+          var ac = el('div', 'acoes');
+          var b1 = el('button', 'mini', 'Corrigir'); b1.type = 'button';
+          b1.onclick = function () {
+            if (it.destino === 'manut') corrigir(it);
+            else location.href = 'index.html#corrigir=' + encodeURIComponent(it.idEnvio);
+          };
+          var b2 = el('button', 'mini perigo', 'Descartar'); b2.type = 'button';
+          b2.onclick = function () { if (confirm('Descartar este registro? Ele não será enviado.')) Fila.remover(it.idEnvio).then(atualizarPainel); };
+          ac.appendChild(b1); ac.appendChild(b2); d.appendChild(ac);
+        }
+        box.appendChild(d);
+      });
+      var rec = $('recLista'); rec.innerHTML = '';
+      if (!hist.length) rec.appendChild(el('div', 'vazio', 'Nenhum envio ainda neste aparelho.'));
+      hist.slice(0, 10).forEach(function (h) {
+        var d = el('div', 'item');
+        d.appendChild(el('b', null, '✅ ' + (h.destino === 'manut' ? '🔧 ' : '🧵 ') + h.id));
+        d.appendChild(el('div', 'meta', h.resumo + ' · enviado em ' + hora(h.enviadoEm)));
+        rec.appendChild(d);
+      });
+      if (!$('f').hidden) aoAtivo();
+    });
+  }
+
+  function corrigir(it) {
+    Fila.remover(it.idEnvio).then(function () {
+      $('sucesso').hidden = true; $('f').hidden = false;
+      estado = { idEnvio: novoId() };
+      preencherForm(it.dados);
+      salvar();
+      mostrarErros(it.erros || []);
+      atualizarPainel();
+      window.scrollTo(0, 0);
+    });
+  }
+
+  function registrarSync() {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.ready.then(function (reg) { return reg.sync ? reg.sync.register('enviar-fila') : null; }).catch(function () {});
+  }
+
+  function sincronizar(manual) {
+    if (sincronizando) return Promise.resolve();
+    sincronizando = true;
+    if (manual) { $('enviarAgora').disabled = true; $('enviarAgora').textContent = 'Enviando…'; }
+    return Fila.enviarFila().then(function (res) {
+      if (ultimoEnvio) {
+        var ok = res.enviados.filter(function (x) { return x.idEnvio === ultimoEnvio; })[0];
+        var rec = res.recusados.filter(function (x) { return x.idEnvio === ultimoEnvio; })[0];
+        if (ok) {
+          $('sucTitulo').textContent = 'Registro enviado';
+          $('idGerado').textContent = ok.id;
+          $('sucTexto').textContent = ok.repetido ? 'Este registro já tinha chegado antes; nada foi duplicado.' : 'Chegou na planilha de manutenção.';
+          ultimoEnvio = null;
+          baixarBase(false); // equipamento novo já aparece na lista
+        } else if (rec) {
+          $('sucTitulo').textContent = 'A planilha recusou o registro';
+          $('sucTexto').textContent = (rec.erros || []).join(' ') + ' Toque em "Corrigir" no quadro Envios.';
+          ultimoEnvio = null;
+        } else if (res.falha && $('sucTexto').textContent === 'Enviando…') {
+          $('sucTexto').textContent = 'Sem conexão com a planilha agora. O registro está guardado e será enviado quando o sinal voltar.';
+        }
+      }
+      if (manual && res.falha) alert('Não foi possível enviar agora (' + res.falha + '). Os registros continuam guardados no aparelho.');
+    }).then(function () {
+      sincronizando = false;
+      $('enviarAgora').disabled = false; $('enviarAgora').textContent = 'Enviar agora';
+      return atualizarPainel();
+    });
+  }
+
+  $('f').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var d = coletar();
+    var erros = validar(d);
+    if (erros.length) { mostrarErros(erros); return; }
+    mostrarErros([]);
+    $('enviar').disabled = true;
+    var c = catAtual();
+    var eqp = d.ativo === NOVO ? 'novo ' + (c ? c.pref : '') : d.ativo.replace(d.pop + '-', '');
+    var item = { idEnvio: d.idEnvio, destino: 'manut', criadoEm: Date.now(), status: 'aguardando',
+      resumo: d.pop + ' · ' + eqp + ' · ' + d.tipo + ' · ' + d.nome, dados: d };
+    Fila.gravar(item).then(function () {
+      gravarLS(CHAVE_ID, JSON.stringify({ nome: d.nome, pop: $('pop').value.trim() }));
+      limparRascunho();
+      ultimoEnvio = item.idEnvio;
+      $('sucTitulo').textContent = 'Registro guardado no aparelho';
+      $('idGerado').textContent = '';
+      $('sucTexto').textContent = navigator.onLine ? 'Enviando…'
+        : 'Sem sinal agora. O registro fica guardado e é enviado quando o celular pegar internet. Ao chegar num lugar com sinal, abra o app para conferir.';
+      $('f').hidden = true; $('avisoRascunho').hidden = true; $('sucesso').hidden = false;
+      window.scrollTo(0, 0);
+      registrarSync();
+      return sincronizar(false);
+    }).catch(function (err) {
+      mostrarErros(['Não foi possível guardar no aparelho: ' + err.message]);
+    }).then(function () { $('enviar').disabled = false; atualizarPainel(); });
+  });
+
+  $('pop').addEventListener('input', aoPop);
+  $('pop').addEventListener('change', aoPop);
+  $('cat').addEventListener('change', aoCat);
+  $('ativo').addEventListener('change', aoAtivo);
+  $('tipo').addEventListener('change', aoTipo);
+  $('novo').onclick = function () { formularioLimpo(); $('sucesso').hidden = true; $('f').hidden = false; window.scrollTo(0, 0); };
+  $('descartar').onclick = function () {
+    if (!confirm('Descartar o rascunho?')) return;
+    limparRascunho(); formularioLimpo(); $('avisoRascunho').hidden = true;
+  };
+  $('enviarAgora').onclick = function () { sincronizar(true); };
+  $('baixarBase').onclick = function () { baixarBase(true); };
+
+  // ---------- Início ----------
+  (function iniciar() {
+    var c = null;
+    try { c = JSON.parse(ler(CHAVE_BASE) || 'null'); } catch (e) {}
+    aplicarBase(c ? c.dados : null, c ? c.em : 0);
+    formularioLimpo();
+    if (restaurarRascunho()) $('avisoRascunho').hidden = false;
+    $('f').addEventListener('input', salvarDepois);
+    $('f').addEventListener('change', salvarDepois);
+    $('avisoConfig').hidden = configurado();
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+      navigator.serviceWorker.addEventListener('message', function (ev) {
+        if (ev.data && ev.data.tipo === 'fila') atualizarPainel();
+      });
+    }
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
+
+    var mh = /corrigir=([^&]+)/.exec(location.hash);
+    if (mh) {
+      var alvo = decodeURIComponent(mh[1]);
+      history.replaceState(null, '', location.pathname);
+      Fila.todos().then(function (l) {
+        var it = l.filter(function (x) { return x.idEnvio === alvo; })[0];
+        if (it) corrigir(it);
+      });
+    }
+
+    atualizarPainel();
+    baixarBase(false);
+    sincronizar(false);
+    setInterval(function () { sincronizar(false); }, 60000);
+    window.addEventListener('online', function () { atualizarPainel(); sincronizar(false); baixarBase(false); });
+    window.addEventListener('offline', atualizarPainel);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) sincronizar(false); });
+  })();
+</script>
+</body>
+</html>

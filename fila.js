@@ -48,12 +48,23 @@
       });
   }
 
-  function enviarItem(item) {
+  // Cada registro vai para a planilha do seu tipo: rompimento (padrão) ou manutenção de POP.
+  function destino(item) {
     var c = g.APP_CONFIG || {};
-    return fetch(c.API_URL, {
+    if (item.destino === 'manut') return { url: c.MANUT_URL, chave: c.MANUT_CHAVE };
+    return { url: c.API_URL, chave: c.CHAVE };
+  }
+
+  function temDestino(item) {
+    return /^https:\/\/script\.google\.com\/.+\/exec$/.test(String(destino(item).url || ''));
+  }
+
+  function enviarItem(item) {
+    var d = destino(item);
+    return fetch(d.url, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ acao: 'registrar', chave: c.CHAVE || '', dados: item.dados }),
+      body: JSON.stringify({ acao: 'registrar', chave: d.chave || '', dados: item.dados }),
       redirect: 'follow'
     }).then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -68,12 +79,13 @@
     if (ocupado) return Promise.resolve(res);
     ocupado = true;
     return todos().then(function (itens) {
-      return itens.filter(function (i) { return i.status !== 'recusado'; }).reduce(function (p, item) {
+      // sem planilha configurada para o tipo, o item espera no aparelho sem travar os outros
+      return itens.filter(function (i) { return i.status !== 'recusado' && temDestino(i); }).reduce(function (p, item) {
         return p.then(function () {
           return enviarItem(item).then(function (r) {
             if (r && r.ok) {
               var reg = {
-                idEnvio: item.idEnvio, id: r.id, resumo: item.resumo, enviadoEm: Date.now(),
+                idEnvio: item.idEnvio, id: r.id, resumo: item.resumo, enviadoEm: Date.now(), destino: item.destino || 'romp',
                 alertas: r.alertas || [], repetido: !!r.repetido
               };
               res.enviados.push(reg);

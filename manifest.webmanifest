@@ -1,7 +1,7 @@
 {
-  "name": "Registro de Rompimento",
-  "short_name": "Rompimentos",
-  "description": "Registro de rompimentos de fibra e materiais, funciona sem internet.",
+  "name": "Registro de Campo – Util",
+  "short_name": "Util Campo",
+  "description": "Registro de rompimentos de fibra e manutenção dos POPs, funciona sem internet.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
