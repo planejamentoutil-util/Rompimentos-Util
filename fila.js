@@ -48,10 +48,10 @@
       });
   }
 
-  // Cada registro vai para a planilha do seu tipo: rompimento (padrão) ou manutenção de POP.
+  // Cada registro vai para a planilha do seu tipo: rompimento (padrão), manutenção de POP ou levantamento de POP (mesma planilha da manutenção).
   function destino(item) {
     var c = g.APP_CONFIG || {};
-    if (item.destino === 'manut') return { url: c.MANUT_URL, chave: c.MANUT_CHAVE };
+    if (item.destino === 'manut' || item.destino === 'lev') return { url: c.MANUT_URL, chave: c.MANUT_CHAVE };
     return { url: c.API_URL, chave: c.CHAVE };
   }
 
@@ -64,7 +64,7 @@
     return fetch(d.url, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ acao: 'registrar', chave: d.chave || '', dados: item.dados }),
+      body: JSON.stringify({ acao: item.acao || 'registrar', chave: d.chave || '', dados: item.dados }),
       redirect: 'follow'
     }).then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);

@@ -61,9 +61,6 @@
   .ok h2 { color:var(--ok); }
   .id { font-size:24px; font-weight:800; margin:6px 0 4px; }
   [hidden] { display:none !important; }
-  .row2 > label { min-width:0; }
-  input[type=date] { -webkit-appearance:none; appearance:none; min-width:0; max-width:100%; display:block; min-height:46px; text-align:left; }
-  input[type=date]::-webkit-date-and-time-value { text-align:left; }
   .abas { display:flex; background:var(--azul); padding:0 12px 10px; gap:8px; }
   .abas a { flex:1; text-align:center; padding:9px 6px; border-radius:8px; color:#fff; text-decoration:none; font-size:14px; font-weight:600; background:rgba(255,255,255,.12); }
   .abas a.ativa { background:#fff; color:var(--azul); }
@@ -79,7 +76,8 @@
 </header>
 <nav class="abas">
   <a href="index.html" class="ativa">Rompimento</a>
-  <a href="manutencao.html">Manutenção de POP</a>
+  <a href="manutencao.html">Manutenção</a>
+  <a href="levantamento.html">Levantamento</a>
 </nav>
 <main>
   <div id="avisoConfig" class="erros" hidden>
@@ -507,6 +505,7 @@
           var b1 = el('button', 'mini', 'Corrigir'); b1.type = 'button';
           b1.onclick = function () {
             if (it.destino === 'manut') location.href = 'manutencao.html#corrigir=' + encodeURIComponent(it.idEnvio);
+            else if (it.destino === 'lev') location.href = 'levantamento.html#corrigir=' + encodeURIComponent(it.idEnvio);
             else corrigir(it);
           };
           var b2 = el('button', 'mini perigo', 'Descartar'); b2.type = 'button';

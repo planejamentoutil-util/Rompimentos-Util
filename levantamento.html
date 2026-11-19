@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1f3a5f">
+<title>Levantamento de POP</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root { --azul:#1f3a5f; --azul2:#2d5a8c; --borda:#c9d3df; --fundo:#f2f5f9; --erro:#b3261e; --ok:#1e6b34; --alerta:#8a5a00; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--fundo); color:#1b1f24; font-size:16px; }
+  header { background:var(--azul); color:#fff; padding:12px 16px; position:sticky; top:0; z-index:5; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  header h1 { margin:0; font-size:18px; }
+  header small { opacity:.85; font-size:12px; display:block; }
+  .pill { font-size:12px; font-weight:700; padding:5px 10px; border-radius:999px; white-space:nowrap; }
+  .pill.on { background:#d9f2df; color:var(--ok); }
+  .pill.off { background:#fde2d5; color:#9a3412; }
+  .abas { display:flex; background:var(--azul); padding:0 12px 10px; gap:8px; }
+  .abas a { flex:1; text-align:center; padding:9px 6px; border-radius:8px; color:#fff; text-decoration:none; font-size:14px; font-weight:600; background:rgba(255,255,255,.12); }
+  .abas a.ativa { background:#fff; color:var(--azul); }
+  main { padding:12px; max-width:640px; margin:0 auto 80px; }
+  .card { background:#fff; border:1px solid var(--borda); border-radius:12px; padding:14px; margin-bottom:12px; }
+  h2 { font-size:16px; margin:0 0 10px; color:var(--azul); }
+  label { display:block; font-size:14px; font-weight:600; margin:10px 0 0; }
+  input, select, textarea { width:100%; font-size:16px; padding:11px 10px; margin-top:4px; border:1px solid var(--borda); border-radius:8px; background:#fff; font-family:inherit; color:inherit; }
+  select:disabled { background:#eef1f5; color:#8b95a8; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  button { font-size:15px; border-radius:8px; border:0; padding:11px 14px; cursor:pointer; font-family:inherit; }
+  .pri { width:100%; background:var(--azul2); color:#fff; font-size:17px; font-weight:700; padding:15px; }
+  .pri:disabled { opacity:.6; }
+  .sec { background:#e3ebf5; color:var(--azul); font-weight:600; width:100%; margin-top:10px; }
+  .mini { background:#e3ebf5; color:var(--azul); font-weight:600; padding:7px 10px; font-size:13px; }
+  .mini.perigo { background:#fdecea; color:var(--erro); }
+  .dica { display:block; color:#555; font-size:12px; font-weight:400; margin-top:4px; }
+  .dica.boa { color:var(--ok); font-weight:600; }
+  .dica.ruim { color:var(--erro); font-weight:600; }
+  .erros { background:#fdecea; border:1px solid #f1b0ab; color:var(--erro); border-radius:10px; padding:10px 14px; margin-bottom:12px; }
+  .erros ul { margin:6px 0 0; padding-left:18px; }
+  .aviso { background:#fff8e1; border:1px solid #f0d58a; border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:14px; display:flex; justify-content:space-between; gap:10px; align-items:center; }
+  .aviso button { background:#fff; border:1px solid #d9b95c; padding:6px 10px; font-size:13px; }
+  .painel-top { display:flex; justify-content:space-between; align-items:center; }
+  .item { border-top:1px solid #e6ebf1; padding:10px 0; font-size:14px; }
+  .item:first-child { border-top:0; }
+  .item b { display:block; }
+  .item .meta { color:#555; font-size:12px; }
+  .item .erro { color:var(--erro); font-size:13px; margin-top:4px; }
+  .item .acoes { display:flex; gap:8px; margin-top:6px; }
+  .vazio { color:#555; font-size:14px; }
+  details summary { cursor:pointer; color:var(--azul); font-weight:600; font-size:14px; margin-top:10px; }
+  .ok { border-color:#9fd0ac; background:#eef8f0; }
+  .ok h2 { color:var(--ok); }
+  .id { font-size:24px; font-weight:800; margin:6px 0 4px; }
+  .base { font-size:12px; color:#555; margin:-4px 0 12px; display:flex; justify-content:space-between; gap:8px; align-items:center; }
+  .base button { padding:5px 9px; font-size:12px; background:#e3ebf5; color:var(--azul); font-weight:600; }
+  [hidden] { display:none !important; }
+  .bloco { border:1px solid #d6dcea; border-radius:10px; padding:10px 12px; margin-top:10px; background:#f8f9fc; }
+  .bloco > b { font-size:14px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Levantamento de POP</h1>
+    <small id="statusRascunho">Funciona sem internet</small>
+  </div>
+  <span id="statusRede" class="pill"></span>
+</header>
+<nav class="abas">
+  <a href="index.html">Rompimento</a>
+  <a href="manutencao.html">Manutenção</a>
+  <a href="levantamento.html" class="ativa">Levantamento</a>
+</nav>
+<main>
+  <div id="avisoConfig" class="erros" hidden>
+    Levantamento ainda não configurado: o config.js precisa da MANUT_URL e da MANUT_CHAVE. Os levantamentos ficam guardados, mas não são enviados.
+  </div>
+  <div id="avisoSemBase" class="erros" hidden>
+    Este celular ainda não tem a lista de POPs e equipamentos. Abra esta tela uma vez com internet para baixar. Depois funciona sem sinal.
+  </div>
+
+  <section class="card" id="painel">
+    <div class="painel-top"><h2 style="margin:0">Envios</h2><span id="contFila" class="dica" style="margin:0"></span></div>
+    <div id="filaLista" style="margin-top:8px"></div>
+    <button type="button" id="enviarAgora" class="sec" hidden>Enviar agora</button>
+    <details><summary>Enviados recentemente</summary><div id="recLista"></div></details>
+  </section>
+
+  <div class="base"><span id="baseInfo"></span><button type="button" id="baixarBase">Atualizar lista</button></div>
+
+  <div id="avisoRascunho" class="aviso" hidden>
+    <span>Rascunho restaurado deste aparelho.</span>
+    <button type="button" id="descartar">Descartar</button>
+  </div>
+
+  <div id="sucesso" class="card ok" hidden>
+    <h2 id="sucTitulo">Levantamento guardado</h2>
+    <div class="id" id="idGerado"></div>
+    <div id="sucTexto" style="font-size:14px"></div>
+    <button type="button" id="novo" class="pri" style="margin-top:14px">Levantar outro POP</button>
+  </div>
+
+  <form id="f" novalidate>
+    <section class="card">
+      <h2>1. POP e visita</h2>
+      <label>POP *<input id="pop" list="dlPop" autocapitalize="characters" placeholder="código ou nome, ex.: SJK-ST1">
+        <small class="dica" id="popDica"></small></label>
+      <div class="row2">
+        <label>Data *<input id="data" type="date"></label>
+        <label>Seu nome *<input id="nome" autocomplete="name"></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2. Energia</h2>
+      <div class="row2">
+        <label>Entrada<select id="entrada" data-op="Monofásico|Bifásico|Trifásico"></select></label>
+        <label>Disjuntor geral (A)<input id="disjuntor" inputmode="decimal"></label>
+      </div>
+      <label>Tem DPS no quadro?<select id="dps" data-op="Sim|Não"></select></label>
+      <label>Tem retificadora?<select id="retif_tem" data-op="Sim|Não"></select></label>
+      <div data-se="retif_tem=Sim">
+        <label>Retificadora marca/modelo<input id="retif_modelo"></label>
+        <div class="row2">
+          <label>Capacidade (A)<input id="retif_cap" inputmode="decimal"></label>
+          <label>Módulos (qtd)<input id="retif_mod" inputmode="numeric"></label>
+        </div>
+        <label>Consumo DC medido (A)<input id="consumo" inputmode="decimal"><small class="dica">Leitura no display da retificadora. Usado para calcular a autonomia.</small></label>
+      </div>
+      <label>Tem nobreak ou inversor?<select id="nb_tem" data-op="Sim|Não"></select></label>
+      <div data-se="nb_tem=Sim"><label>Modelo / potência<input id="nb_modelo"></label></div>
+      <label>Equipamentos com 2 fontes estão com as 2 ligadas?<select id="fonte_dupla" data-op="Sim|Não|Parcial|Não tem fonte dupla"></select></label>
+    </section>
+
+    <section class="card">
+      <h2>3. Baterias</h2>
+      <label>Tem banco de baterias?<select id="bat_tem" data-op="Sim|Não"></select></label>
+      <div data-se="bat_tem=Sim">
+        <div class="row2">
+          <label>Tensão do banco (V)<input id="bat_v" inputmode="decimal" placeholder="48"></label>
+          <label>Capacidade do banco (Ah)<input id="bat_ah" inputmode="decimal"></label>
+        </div>
+        <div class="row2">
+          <label>Fabricação (mês/ano)<input id="bat_fab" placeholder="03/2024"></label>
+          <label>Estado<select id="bat_estado" data-op="Bom|Regular|Ruim|Trocar"></select></label>
+        </div>
+        <div id="eq_BAT"></div><button type="button" class="sec" data-add="BAT">+ Banco/bateria não listado</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>4. Gerador</h2>
+      <label>Tem gerador fixo?<select id="ger_tem" data-op="Sim|Não"></select></label>
+      <div data-se="ger_tem=Sim">
+        <div class="row2">
+          <label>Combustível<select id="ger_comb" data-op="Diesel|Gasolina|Gás"></select></label>
+          <label>Transferência<select id="transf" data-op="ATS automático|QTA manual|Sem transferência"></select></label>
+        </div>
+        <div id="eq_GER"></div><button type="button" class="sec" data-add="GER">+ Gerador não listado</button>
+      </div>
+      <label>Tem tomada para o gerador móvel (carretinha)?<select id="tomada" data-op="Sim|Não"></select></label>
+    </section>
+
+    <section class="card">
+      <h2>5. Solar</h2>
+      <label>Tem painel solar?<select id="sol_tem" data-op="Sim|Não"></select></label>
+      <div data-se="sol_tem=Sim">
+        <label>Placas (qtd x W)<input id="sol_placas" placeholder="8 x 600 W"></label>
+        <div id="eq_SOL"></div><button type="button" class="sec" data-add="SOL">+ String/painel não listado</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>6. Ar-condicionado e abrigo</h2>
+      <label>Tem ar-condicionado?<select id="ar_tem" data-op="Sim|Não"></select></label>
+      <div data-se="ar_tem=Sim">
+        <div id="eq_AC"></div><button type="button" class="sec" data-add="AC">+ Ar não listado</button>
+        <label>O ar sopra na frente dos equipamentos?<select id="fluxo" data-op="Sim|Não"></select></label>
+      </div>
+      <div class="row2">
+        <label>Temperatura (°C)<input id="temp" inputmode="decimal"></label>
+        <label>Abrigo<select id="abrigo" data-op="Sala alvenaria|Container|Gabinete outdoor|Abrigo/casinha|Torre"></select></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>7. Aterramento e acesso</h2>
+      <label>Tem barra de aterramento?<select id="barra" data-op="Sim|Não"></select></label>
+      <label>Equipamentos aterrados na barra (cabo próprio)?<select id="aterrados" data-op="Sim|Não|Parcial"></select></label>
+      <label>Acesso<input id="acesso" placeholder="cadeado, chave, quem tem"></label>
+      <label>Segurança<input id="seguranca" placeholder="alarme, câmera, cerca"></label>
+    </section>
+
+    <section class="card">
+      <h2>8. DGO e cabos</h2>
+      <label>Tem DGO no POP?<select id="dgo_tem" data-op="Sim|Não"></select></label>
+      <div data-se="dgo_tem=Sim"><div id="dgos"></div><button type="button" class="sec" id="addDgo">+ Adicionar DGO</button></div>
+      <label>Patch cords conferidos (porta DGO → equipamento)?<select id="patch" data-op="Sim|Parcial|Não"></select></label>
+      <label>Está tudo etiquetado?<select id="etiquetas" data-op="Sim|Parcial|Não"></select></label>
+    </section>
+
+    <section class="card">
+      <h2>9. Racks, ativos e fotos</h2>
+      <label>Racks batem com o NetBox?<select id="racks_nb" data-op="Sim|Divergente|Não cadastrado"></select></label>
+      <label>Ativos batem com o NetBox?<select id="ativos_nb" data-op="Sim|Divergente|Não cadastrado"></select></label>
+      <label>Link da pasta de fotos<input id="fotos" type="url" placeholder="https://drive.google.com/..."><small class="dica">Pode colar depois, quando subir as fotos no Drive.</small></label>
+      <label>Observações<textarea id="obs" rows="2"></textarea></label>
+    </section>
+
+    <section class="card">
+      <h2>10. Pendências encontradas</h2>
+      <small class="dica">O que precisa ser resolvido neste POP. Prioridade alta avisa no Telegram.</small>
+      <div id="pends"></div><button type="button" class="sec" id="addPend">+ Adicionar pendência</button>
+    </section>
+
+    <datalist id="dlPop"></datalist>
+    <div id="erros" class="erros" hidden></div>
+    <button type="submit" id="enviar" class="pri">Salvar e enviar</button>
+  </form>
+</main>
+
+<script src="config.js"></script>
+<script src="fila.js"></script>
+<script>
+  var CFG = self.APP_CONFIG || {};
+  var NOVO = '__NOVO__';
+  var CHAVE_RASC = 'lev_rascunho_v1', CHAVE_BASE = 'lev_base', CHAVE_ID = 'manut_identidade';
+  var CATS = { AC: 'Ar-condicionado', GER: 'Gerador', BAT: 'Banco de baterias', SOL: 'Painel solar' };
+  var CAPS = { AC: 'BTU', GER: 'kVA', BAT: 'Ah / V', SOL: 'W' };
+  var TEM = { AC: 'ar_tem', GER: 'ger_tem', BAT: 'bat_tem', SOL: 'sol_tem' };
+  var BASE = { pops: [], cats: [], ativos: [], catPend: [] }, BASE_EM = 0;
+  var estado = { idEnvio: null };
+  var timerSalvar = null, ultimoEnvio = null, sincronizando = false;
+
+  function $(id) { return document.getElementById(id); }
+  function configurado() { return /^https:\/\/script\.google\.com\/.+\/exec$/.test(String(CFG.MANUT_URL || '')); }
+  function novoId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+  }
+  function hojeISO() { var d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); }
+  function hora(ms) { return new Date(ms).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+  function ler(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+  function gravarLS(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function el(tag, cls, txt) { var x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; }
+  function catNome(pref) { var c = BASE.cats.filter(function (x) { return x.pref === pref; })[0]; return c ? c.nome : CATS[pref]; }
+
+  // selects com opções fixas
+  document.querySelectorAll('select[data-op]').forEach(function (s) {
+    s.innerHTML = '';
+    s.appendChild(new Option('—', ''));
+    s.getAttribute('data-op').split('|').forEach(function (o) { s.appendChild(new Option(o, o)); });
+  });
+  var CAMPOS = [];
+  document.querySelectorAll('#f input[id], #f select[id], #f textarea[id]').forEach(function (x) {
+    if (['pop', 'data', 'nome'].indexOf(x.id) < 0) CAMPOS.push(x.id);
+  });
+  function vis() {
+    document.querySelectorAll('[data-se]').forEach(function (x) {
+      var p = x.getAttribute('data-se').split('='); x.hidden = $(p[0]).value !== p[1];
+    });
+  }
+
+  // ---------- Base ----------
+  function aplicarBase(b, em) {
+    BASE = b || { pops: [], cats: [], ativos: [], catPend: [] };
+    BASE.catPend = BASE.catPend || [];
+    BASE_EM = em || 0;
+    var dl = $('dlPop'); dl.innerHTML = '';
+    BASE.pops.forEach(function (p) { var o = document.createElement('option'); o.value = p.cod + ' – ' + p.nome; dl.appendChild(o); });
+    $('avisoSemBase').hidden = BASE.pops.length > 0;
+    $('baseInfo').textContent = BASE_EM ? 'Lista de POPs e equipamentos de ' + hora(BASE_EM) + ' · ' + BASE.pops.length + ' POPs' : 'Lista de POPs ainda não baixada';
+  }
+  function baixarBase(manual) {
+    if (!configurado()) { if (manual) alert('O app ainda não está configurado no config.js.'); return Promise.resolve(); }
+    if (!navigator.onLine) { if (manual) alert('Sem sinal agora. A lista atual continua valendo.'); return Promise.resolve(); }
+    if (manual) { $('baixarBase').disabled = true; $('baixarBase').textContent = 'Baixando…'; }
+    return fetch(CFG.MANUT_URL + '?api=baseLev&chave=' + encodeURIComponent(CFG.MANUT_CHAVE || ''), { redirect: 'follow' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) { if (manual) alert('A planilha recusou: ' + (j.erros || []).join(' ')); return; }
+        var em = Date.now();
+        gravarLS(CHAVE_BASE, JSON.stringify({ em: em, dados: j.base }));
+        var d = coletar();
+        aplicarBase(j.base, em);
+        if (!$('f').hidden && d.pop) preencherForm(d);   // reaplica o que estava na tela
+      })
+      .catch(function (e) { if (manual) alert('Não foi possível baixar a lista (' + e.message + '). Confira se a planilha já está com o script novo publicado.'); })
+      .then(function () { $('baixarBase').disabled = false; $('baixarBase').textContent = 'Atualizar lista'; });
+  }
+
+  // ---------- Blocos ----------
+  function campo(rot, k, v, attrs) {
+    var l = el('label', null, rot); var i = document.createElement('input');
+    i.setAttribute('data-k', k); i.value = v || ''; if (attrs) Object.keys(attrs).forEach(function (a) { i.setAttribute(a, attrs[a]); });
+    l.appendChild(i); return l;
+  }
+  function selCampo(rot, k, ops, v) {
+    var l = el('label', null, rot); var s = document.createElement('select'); s.setAttribute('data-k', k);
+    ops.forEach(function (o) { s.appendChild(new Option(o || '—', o)); }); s.value = v || ops[0];
+    l.appendChild(s); return l;
+  }
+  function linha2(a, b) { var d = el('div', 'row2'); d.appendChild(a); d.appendChild(b); return d; }
+  function botaoRemover(div, txt) {
+    var b = el('button', 'mini perigo', txt || 'Remover'); b.type = 'button'; b.style.marginTop = '8px';
+    b.onclick = function () { div.remove(); salvarDepois(); }; return b;
+  }
+  function blocoEq(pref, a) {
+    var div = el('div', 'bloco eq');
+    div.setAttribute('data-cat', catNome(pref)); div.setAttribute('data-ativo', a ? a.id : NOVO);
+    div.appendChild(el('b', null, a ? a.id + (a.desc ? ' – ' + a.desc : '') : 'Novo equipamento'));
+    if (!a) div.appendChild(el('small', 'dica', 'O número é gerado pela planilha quando o levantamento chegar.'));
+    div.appendChild(campo('Identificação / local', 'desc', a ? a.desc : ''));
+    div.appendChild(linha2(campo('Marca/modelo', 'marca', a ? a.marca : ''), campo('Capacidade (' + CAPS[pref] + ')', 'cap', a ? a.cap : '')));
+    div.appendChild(campo('Nº de série', 'serie', a ? a.serie : ''));
+    if (!a) div.appendChild(botaoRemover(div));
+    $('eq_' + pref).appendChild(div); return div;
+  }
+  function blocoDgo(g) {
+    g = g || {}; var div = el('div', 'bloco dgo');
+    div.appendChild(el('b', null, 'DGO'));
+    div.appendChild(campo('Nome', 'nome', g.nome, { placeholder: 'DGO-SJK-ST1-01' }));
+    div.appendChild(linha2(campo('Marca/modelo', 'modelo', g.modelo), campo('Capacidade (FO)', 'cap', g.cap, { inputmode: 'numeric' })));
+    div.appendChild(linha2(campo('Rack / posição (U)', 'rack', g.rack), campo('Compartilhado com', 'compart', g.compart, { placeholder: 'Ninguém' })));
+    var l = el('label', null, 'Cabos que chegam'); var t = document.createElement('textarea'); t.rows = 3; t.setAttribute('data-k', 'cabos'); t.value = g.cabos || '';
+    t.placeholder = 'nome do FiberDocs e bandeja/portas de cada cabo'; l.appendChild(t); div.appendChild(l);
+    div.appendChild(linha2(campo('Portas livres', 'livres', g.livres, { inputmode: 'numeric' }), campo('Portas com defeito', 'defeito', g.defeito)));
+    div.appendChild(selCampo('Etiquetado?', 'etiq', ['', 'Sim', 'Parcial', 'Não'], g.etiq));
+    div.appendChild(botaoRemover(div, 'Remover DGO'));
+    $('dgos').appendChild(div);
+  }
+  function blocoPend(p) {
+    p = p || {}; var div = el('div', 'bloco pend');
+    div.appendChild(linha2(selCampo('Categoria', 'cat', [''].concat(BASE.catPend.length ? BASE.catPend : ['Energia', 'Baterias', 'Gerador', 'Ar-condicionado', 'Aterramento', 'DGO/Cabos', 'Etiquetas', 'Segurança', 'Outro']), p.cat),
+      selCampo('Prioridade', 'prio', ['Média', 'Alta', 'Baixa'], p.prio)));
+    var l = el('label', null, 'O que precisa ser feito'); var t = document.createElement('textarea'); t.rows = 2; t.setAttribute('data-k', 'desc'); t.value = p.desc || '';
+    l.appendChild(t); div.appendChild(l);
+    div.appendChild(botaoRemover(div));
+    $('pends').appendChild(div);
+  }
+  function lerBloco(div) { var o = {}; div.querySelectorAll('[data-k]').forEach(function (x) { o[x.getAttribute('data-k')] = x.value.trim(); }); return o; }
+
+  // ---------- POP ----------
+  function popAtual() {
+    var t = $('pop').value.trim(); if (!t) return null;
+    var cod = t.split(' – ')[0].trim().toUpperCase();
+    return BASE.pops.filter(function (p) { return p.cod.toUpperCase() === cod || p.nome.toUpperCase() === t.toUpperCase(); })[0] || null;
+  }
+  function aoPop() {
+    var p = popAtual(), t = $('pop').value.trim(), dica = $('popDica');
+    if (p) { dica.textContent = p.nome + (p.cidade ? ' · ' + p.cidade : ''); dica.className = 'dica boa'; }
+    else { dica.textContent = t ? (BASE.pops.length ? 'POP não encontrado. Escolha na lista.' : 'Lista de POPs não baixada ainda.') : ''; dica.className = 'dica ruim'; }
+    Object.keys(CATS).forEach(function (pref) {
+      $('eq_' + pref).innerHTML = '';
+      if (!p) return;
+      var lista = BASE.ativos.filter(function (a) { return a.pop === p.cod && a.cat === catNome(pref); });
+      lista.forEach(function (a) { blocoEq(pref, a); });
+      if (lista.length && !$(TEM[pref]).value) $(TEM[pref]).value = 'Sim';
+    });
+    vis();
+  }
+
+  // ---------- Coleta ----------
+  function coletar() {
+    var p = popAtual();
+    var d = { idEnvio: estado.idEnvio, pop: p ? p.cod : $('pop').value.trim(), data: $('data').value, nome: $('nome').value.trim(),
+      equip: [], dgos: [], pend: [], registradoNoAparelho: new Date().toISOString() };
+    CAMPOS.forEach(function (id) { d[id] = $(id).value.trim(); });
+    var temPorCat = {}; Object.keys(CATS).forEach(function (k) { temPorCat[catNome(k)] = TEM[k]; });
+    document.querySelectorAll('.eq').forEach(function (div) {
+      var cat = div.getAttribute('data-cat'); if (d[temPorCat[cat]] !== 'Sim') return;
+      var o = lerBloco(div); o.cat = cat; o.ativo = div.getAttribute('data-ativo'); d.equip.push(o);
+    });
+    if (d.dgo_tem === 'Sim') document.querySelectorAll('.dgo').forEach(function (div) { d.dgos.push(lerBloco(div)); });
+    document.querySelectorAll('.pend').forEach(function (div) { d.pend.push(lerBloco(div)); });
+    return d;
+  }
+  function validar(d) {
+    var e = [];
+    if (!popAtual()) e.push('Escolha o POP na lista.');
+    if (!d.data) e.push('Informe a data.'); else if (d.data > hojeISO()) e.push('A data está no futuro.');
+    if (!d.nome) e.push('Digite seu nome.');
+    var preenchidos = CAMPOS.filter(function (k) { return d[k]; }).length + d.equip.length + d.dgos.length + d.pend.length;
+    if (preenchidos === 0) e.push('Nada foi preenchido no levantamento.');
+    return e;
+  }
+  function mostrarErros(l) {
+    var box = $('erros');
+    if (!l || !l.length) { box.hidden = true; return; }
+    box.innerHTML = '<b>Corrija antes de salvar:</b><ul></ul>';
+    l.forEach(function (t) { box.querySelector('ul').appendChild(el('li', null, t)); });
+    box.hidden = false; box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  function preencherForm(d) {
+    $('pop').value = d.pop || ''; $('data').value = d.data || hojeISO(); $('nome').value = d.nome || '';
+    ['dgos', 'pends'].forEach(function (id) { $(id).innerHTML = ''; });
+    CAMPOS.forEach(function (id) { $(id).value = d[id] != null ? d[id] : ''; });
+    aoPop();
+    (d.equip || []).forEach(function (e) {
+      var pref = Object.keys(CATS).filter(function (k) { return catNome(k) === e.cat; })[0]; if (!pref) return;
+      var div = null;
+      if (e.ativo !== NOVO) document.querySelectorAll('.eq').forEach(function (x) { if (x.getAttribute('data-ativo') === e.ativo) div = x; });
+      if (!div) div = blocoEq(pref, null);
+      div.querySelectorAll('[data-k]').forEach(function (x) { var k = x.getAttribute('data-k'); if (e[k] != null) x.value = e[k]; });
+    });
+    (d.dgos || []).forEach(blocoDgo); (d.pend || []).forEach(blocoPend);
+    CAMPOS.forEach(function (id) { if (d[id] != null) $(id).value = d[id]; });
+    vis();
+  }
+
+  // ---------- Rascunho ----------
+  function salvarDepois() { clearTimeout(timerSalvar); timerSalvar = setTimeout(salvar, 600); }
+  function salvar() {
+    if ($('f').hidden || !$('pop').value.trim()) return;
+    gravarLS(CHAVE_RASC, JSON.stringify({ estado: estado, dados: coletar() }));
+    $('statusRascunho').textContent = 'Rascunho salvo às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+  function restaurarRascunho() {
+    var bruto = ler(CHAVE_RASC); if (!bruto) return false;
+    try { var r = JSON.parse(bruto); estado = r.estado || { idEnvio: novoId() }; preencherForm(r.dados || {}); return true; }
+    catch (e) { return false; }
+  }
+  function limparRascunho() { try { localStorage.removeItem(CHAVE_RASC); } catch (e) {} }
+  function formularioLimpo() {
+    $('f').reset();
+    ['dgos', 'pends'].forEach(function (id) { $(id).innerHTML = ''; });
+    estado = { idEnvio: novoId() };
+    $('data').value = hojeISO();
+    var ident = {};
+    try { ident = JSON.parse(ler(CHAVE_ID) || '{}'); } catch (e) {}
+    if (!ident.nome) { try { ident.nome = (JSON.parse(ler('romp_identidade') || '{}')).tecnico || ''; } catch (e) {} }
+    $('nome').value = ident.nome || '';
+    $('pop').value = '';
+    aoPop(); mostrarErros([]);
+    $('statusRascunho').textContent = 'Funciona sem internet';
+  }
+
+  // ---------- Fila (a mesma do app) ----------
+  var ICONE = { manut: '🔧 ', lev: '📋 ' };
+  function atualizarPainel() {
+    var on = navigator.onLine;
+    $('statusRede').textContent = on ? 'Com sinal' : 'Sem sinal';
+    $('statusRede').className = 'pill ' + (on ? 'on' : 'off');
+    return Promise.all([Fila.todos(), Fila.historico()]).then(function (r) {
+      var itens = r[0], hist = r[1];
+      var box = $('filaLista'); box.innerHTML = '';
+      var aguardando = itens.filter(function (i) { return i.status !== 'recusado'; }).length;
+      $('contFila').textContent = itens.length ? itens.length + ' no aparelho' : '';
+      $('enviarAgora').hidden = !aguardando;
+      if (!itens.length) box.appendChild(el('div', 'vazio', 'Nada pendente. Tudo o que foi registrado já chegou na planilha.'));
+      itens.forEach(function (it) {
+        var d = el('div', 'item');
+        d.appendChild(el('b', null, (it.status === 'recusado' ? '⚠️ ' : '⏳ ') + (ICONE[it.destino] || '🧵 ') + it.resumo));
+        d.appendChild(el('div', 'meta', 'Salvo em ' + hora(it.criadoEm) + (it.status === 'recusado' ? ' · recusado pela planilha' : ' · aguardando sinal')));
+        if (it.status === 'recusado') {
+          d.appendChild(el('div', 'erro', (it.erros || []).join(' ')));
+          var ac = el('div', 'acoes');
+          var b1 = el('button', 'mini', 'Corrigir'); b1.type = 'button';
+          b1.onclick = function () {
+            if (it.destino === 'lev') corrigir(it);
+            else location.href = (it.destino === 'manut' ? 'manutencao.html' : 'index.html') + '#corrigir=' + encodeURIComponent(it.idEnvio);
+          };
+          var b2 = el('button', 'mini perigo', 'Descartar'); b2.type = 'button';
+          b2.onclick = function () { if (confirm('Descartar este registro? Ele não será enviado.')) Fila.remover(it.idEnvio).then(atualizarPainel); };
+          ac.appendChild(b1); ac.appendChild(b2); d.appendChild(ac);
+        }
+        box.appendChild(d);
+      });
+      var rec = $('recLista'); rec.innerHTML = '';
+      if (!hist.length) rec.appendChild(el('div', 'vazio', 'Nenhum envio ainda neste aparelho.'));
+      hist.slice(0, 10).forEach(function (h) {
+        var d = el('div', 'item');
+        d.appendChild(el('b', null, '✅ ' + (ICONE[h.destino] || '🧵 ') + (h.id || '')));
+        d.appendChild(el('div', 'meta', h.resumo + ' · enviado em ' + hora(h.enviadoEm)));
+        rec.appendChild(d);
+      });
+    });
+  }
+  function corrigir(it) {
+    Fila.remover(it.idEnvio).then(function () {
+      $('sucesso').hidden = true; $('f').hidden = false;
+      estado = { idEnvio: novoId() };
+      preencherForm(it.dados);
+      salvar(); mostrarErros(it.erros || []); atualizarPainel(); window.scrollTo(0, 0);
+    });
+  }
+  function registrarSync() {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.ready.then(function (reg) { return reg.sync ? reg.sync.register('enviar-fila') : null; }).catch(function () {});
+  }
+  function sincronizar(manual) {
+    if (sincronizando) return Promise.resolve();
+    sincronizando = true;
+    if (manual) { $('enviarAgora').disabled = true; $('enviarAgora').textContent = 'Enviando…'; }
+    return Fila.enviarFila().then(function (res) {
+      if (ultimoEnvio) {
+        var ok = res.enviados.filter(function (x) { return x.idEnvio === ultimoEnvio; })[0];
+        var rec = res.recusados.filter(function (x) { return x.idEnvio === ultimoEnvio; })[0];
+        if (ok) {
+          $('sucTitulo').textContent = 'Levantamento enviado';
+          $('idGerado').textContent = ok.id || '';
+          $('sucTexto').textContent = ok.repetido ? 'Este levantamento já tinha chegado antes; nada foi duplicado.' : 'Chegou na planilha. O Controle POPs já foi atualizado.';
+          ultimoEnvio = null; baixarBase(false);
+        } else if (rec) {
+          $('sucTitulo').textContent = 'A planilha recusou o levantamento';
+          $('sucTexto').textContent = (rec.erros || []).join(' ') + ' Toque em "Corrigir" no quadro Envios.';
+          ultimoEnvio = null;
+        } else if (res.falha && $('sucTexto').textContent === 'Enviando…') {
+          $('sucTexto').textContent = 'Sem conexão com a planilha agora. O levantamento está guardado e será enviado quando o sinal voltar.';
+        }
+      }
+      if (manual && res.falha) alert('Não foi possível enviar agora (' + res.falha + '). Os registros continuam guardados no aparelho.');
+    }).then(function () {
+      sincronizando = false;
+      $('enviarAgora').disabled = false; $('enviarAgora').textContent = 'Enviar agora';
+      return atualizarPainel();
+    });
+  }
+
+  $('f').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var d = coletar(), erros = validar(d);
+    if (erros.length) { mostrarErros(erros); return; }
+    mostrarErros([]);
+    $('enviar').disabled = true;
+    var extra = [];
+    if (d.pend.filter(function (p) { return p.desc; }).length) extra.push(d.pend.filter(function (p) { return p.desc; }).length + ' pend.');
+    var item = { idEnvio: d.idEnvio, destino: 'lev', acao: 'levantamento', criadoEm: Date.now(), status: 'aguardando',
+      resumo: d.pop + ' · levantamento' + (extra.length ? ' · ' + extra.join(' · ') : '') + ' · ' + d.nome, dados: d };
+    Fila.gravar(item).then(function () {
+      var ident = {}; try { ident = JSON.parse(ler(CHAVE_ID) || '{}'); } catch (e) {}
+      ident.nome = d.nome; gravarLS(CHAVE_ID, JSON.stringify(ident));
+      limparRascunho();
+      ultimoEnvio = item.idEnvio;
+      $('sucTitulo').textContent = 'Levantamento guardado no aparelho';
+      $('idGerado').textContent = d.pop;
+      $('sucTexto').textContent = navigator.onLine ? 'Enviando…'
+        : 'Sem sinal agora. O levantamento fica guardado e é enviado quando o celular pegar internet. Ao chegar num lugar com sinal, abra o app para conferir.';
+      $('f').hidden = true; $('avisoRascunho').hidden = true; $('sucesso').hidden = false;
+      window.scrollTo(0, 0);
+      registrarSync();
+      return sincronizar(false);
+    }).catch(function (err) {
+      mostrarErros(['Não foi possível guardar no aparelho: ' + err.message]);
+    }).then(function () { $('enviar').disabled = false; atualizarPainel(); });
+  });
+
+  $('pop').addEventListener('change', function () { aoPop(); salvarDepois(); });
+  $('f').addEventListener('change', function () { vis(); salvarDepois(); });
+  $('f').addEventListener('input', salvarDepois);
+  document.querySelectorAll('[data-add]').forEach(function (b) { b.onclick = function () { blocoEq(b.getAttribute('data-add'), null); salvarDepois(); }; });
+  $('addDgo').onclick = function () { blocoDgo(); salvarDepois(); };
+  $('addPend').onclick = function () { blocoPend(); salvarDepois(); };
+  $('novo').onclick = function () { formularioLimpo(); $('sucesso').hidden = true; $('f').hidden = false; window.scrollTo(0, 0); };
+  $('descartar').onclick = function () {
+    if (!confirm('Descartar o rascunho?')) return;
+    limparRascunho(); formularioLimpo(); $('avisoRascunho').hidden = true;
+  };
+  $('enviarAgora').onclick = function () { sincronizar(true); };
+  $('baixarBase').onclick = function () { baixarBase(true); };
+
+  // ---------- Início ----------
+  (function iniciar() {
+    var c = null;
+    try { c = JSON.parse(ler(CHAVE_BASE) || 'null'); } catch (e) {}
+    aplicarBase(c ? c.dados : null, c ? c.em : 0);
+    formularioLimpo();
+    if (restaurarRascunho()) $('avisoRascunho').hidden = false;
+    $('avisoConfig').hidden = configurado();
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+      navigator.serviceWorker.addEventListener('message', function (ev) { if (ev.data && ev.data.tipo === 'fila') atualizarPainel(); });
+    }
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
+
+    var mh = /corrigir=([^&]+)/.exec(location.hash);
+    if (mh) {
+      var alvo = decodeURIComponent(mh[1]);
+      history.replaceState(null, '', location.pathname);
+      Fila.todos().then(function (l) { var it = l.filter(function (x) { return x.idEnvio === alvo; })[0]; if (it) corrigir(it); });
+    }
+
+    atualizarPainel();
+    baixarBase(false);
+    sincronizar(false);
+    setInterval(function () { sincronizar(false); }, 60000);
+    window.addEventListener('online', function () { atualizarPainel(); sincronizar(false); baixarBase(false); });
+    window.addEventListener('offline', atualizarPainel);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) sincronizar(false); });
+  })();
+</script>
+</body>
+</html>
