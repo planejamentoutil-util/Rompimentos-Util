@@ -5,6 +5,6 @@ self.APP_CONFIG = {
   API_URL: 'https://script.google.com/macros/s/AKfycbxnvfQOpPDmq3A51jeowwLNq-HsGs7nv8-B0rrRMm4hkjeGUdGpjrwZjL_Qnl4XUq5ZKw/exec',
   CHAVE: '512881af4fa54aa7871c',
 
-  MANUT_URL: 'https://script.google.com/macros/s/AKfycbxJst9dqYxlEDFBv1JN1QPXVxWXjrDq-1bsE4J0j7uoXwFJHiUTESN2hiQBLcR1iEg/exec',   // cole aqui a URL do App da Web da planilha de manutenção (termina em /exec)
-  MANUT_CHAVE: '80e9961eb1f441628333'  // cole aqui a chave mostrada no menu da planilha de manutenção
+  MANUT_URL: '',   // cole aqui a URL do App da Web da planilha de manutenção (termina em /exec)
+  MANUT_CHAVE: ''  // cole aqui a chave mostrada no menu da planilha de manutenção
 };

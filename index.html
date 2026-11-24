@@ -77,7 +77,7 @@
 <nav class="abas">
   <a href="index.html" class="ativa">Rompimento</a>
   <a href="manutencao.html">Manutenção</a>
-  <a href="levantamento.html">Levantamento</a>
+  <a href="coleta.html">Coleta GPS</a>
 </nav>
 <main>
   <div id="avisoConfig" class="erros" hidden>
@@ -504,8 +504,8 @@
           var ac = el('div', 'acoes');
           var b1 = el('button', 'mini', 'Corrigir'); b1.type = 'button';
           b1.onclick = function () {
-            if (it.destino === 'manut') location.href = 'manutencao.html#corrigir=' + encodeURIComponent(it.idEnvio);
-            else if (it.destino === 'lev') location.href = 'levantamento.html#corrigir=' + encodeURIComponent(it.idEnvio);
+            if (it.destino === 'coleta') location.href = 'coleta.html';
+            else if (it.destino === 'manut') location.href = 'manutencao.html#corrigir=' + encodeURIComponent(it.idEnvio);
             else corrigir(it);
           };
           var b2 = el('button', 'mini perigo', 'Descartar'); b2.type = 'button';

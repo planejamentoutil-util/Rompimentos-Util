@@ -2,7 +2,7 @@
 importScripts('config.js', 'fila.js');
 
 var CACHE = 'campo-v4';
-var ARQUIVOS = ['./', 'index.html', 'manutencao.html', 'levantamento.html', 'config.js', 'fila.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
+var ARQUIVOS = ['./', 'index.html', 'manutencao.html', 'coleta.html', 'config.js', 'fila.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ARQUIVOS); }).then(function () { return self.skipWaiting(); }));

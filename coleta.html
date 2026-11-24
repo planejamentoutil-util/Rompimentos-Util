@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1f3a5f">
+<title>Coleta de pontos GPS</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root { --azul:#1f3a5f; --azul2:#2d5a8c; --borda:#c9d3df; --fundo:#f2f5f9; --erro:#b3261e; --ok:#1e6b34; --alerta:#8a5a00; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--fundo); color:#1b1f24; font-size:16px; }
+  header { background:var(--azul); color:#fff; padding:12px 16px; position:sticky; top:0; z-index:5; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  header h1 { margin:0; font-size:18px; }
+  header small { opacity:.85; font-size:12px; display:block; }
+  .pill { font-size:12px; font-weight:700; padding:5px 10px; border-radius:999px; white-space:nowrap; }
+  .pill.on { background:#d9f2df; color:var(--ok); }
+  .pill.off { background:#fde2d5; color:#9a3412; }
+  .abas { display:flex; background:var(--azul); padding:0 12px 10px; gap:8px; }
+  .abas a { flex:1; text-align:center; padding:9px 4px; border-radius:8px; color:#fff; text-decoration:none; font-size:14px; font-weight:600; background:rgba(255,255,255,.12); }
+  .abas a.ativa { background:#fff; color:var(--azul); }
+  main { padding:12px; max-width:640px; margin:0 auto 80px; }
+  .card { background:#fff; border:1px solid var(--borda); border-radius:12px; padding:14px; margin-bottom:12px; }
+  h2 { font-size:16px; margin:0 0 10px; color:var(--azul); }
+  label { display:block; font-size:14px; font-weight:600; margin:10px 0 0; }
+  input, select, textarea { width:100%; font-size:16px; padding:11px 10px; margin-top:4px; border:1px solid var(--borda); border-radius:8px; background:#fff; font-family:inherit; color:inherit; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  button { font-size:15px; border-radius:8px; border:0; padding:11px 14px; cursor:pointer; font-family:inherit; }
+  .pri { width:100%; background:var(--azul2); color:#fff; font-size:17px; font-weight:700; padding:15px; margin-top:12px; }
+  .pri:disabled { opacity:.6; }
+  .sec { background:#e3ebf5; color:var(--azul); font-weight:600; width:100%; margin-top:10px; }
+  .sec:disabled { opacity:.5; }
+  .mini { background:#e3ebf5; color:var(--azul); font-weight:600; padding:7px 10px; font-size:13px; }
+  .mini.perigo { background:#fdecea; color:var(--erro); }
+  .dica { display:block; color:#555; font-size:12px; font-weight:400; margin-top:4px; }
+  .dica.boa { color:var(--ok); font-weight:600; }
+  .dica.ruim { color:var(--erro); font-weight:600; }
+  .erros { background:#fdecea; border:1px solid #f1b0ab; color:var(--erro); border-radius:10px; padding:10px 14px; margin-bottom:12px; }
+  .item { border-top:1px solid #e6ebf1; padding:10px 0; font-size:14px; }
+  .item:first-child { border-top:0; }
+  .item b { display:block; }
+  .item .meta { color:#555; font-size:12px; margin-top:2px; }
+  .item .erro { color:var(--erro); font-size:13px; margin-top:4px; }
+  .item .acoes { display:flex; gap:8px; margin-top:6px; flex-wrap:wrap; }
+  .item a.mini { text-decoration:none; display:inline-block; border-radius:8px; }
+  .vazio { color:#555; font-size:14px; }
+  .painel-top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .proj { display:grid; grid-template-columns:1fr auto; gap:8px; align-items:end; }
+  .proj button { margin-bottom:0; }
+  .gpsbtn { width:100%; background:var(--ok); color:#fff; font-size:18px; font-weight:700; padding:18px; margin-top:12px; }
+  .gpsbtn:disabled { opacity:.65; }
+  details summary { cursor:pointer; color:var(--azul); font-weight:600; font-size:14px; margin-top:10px; }
+  .toast { background:#eef8f0; border:1px solid #9fd0ac; color:var(--ok); border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:14px; font-weight:600; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Coleta de pontos GPS</h1>
+    <small id="statusRascunho">Funciona sem internet</small>
+  </div>
+  <span id="statusRede" class="pill"></span>
+</header>
+<nav class="abas">
+  <a href="index.html">Rompimento</a>
+  <a href="manutencao.html">Manutenção</a>
+  <a href="coleta.html" class="ativa">Coleta GPS</a>
+</nav>
+<main>
+  <div id="avisoConfig" class="erros" hidden>
+    O envio para a planilha ainda não está configurado (MANUT_URL e MANUT_CHAVE no config.js). Os pontos ficam guardados no aparelho e dá para exportar KMZ normalmente.
+  </div>
+  <div id="toast" class="toast" hidden></div>
+
+  <section class="card">
+    <h2>Projeto</h2>
+    <div class="proj">
+      <label style="margin:0">Projeto atual
+        <select id="selProj"></select>
+      </label>
+      <button type="button" id="novoProj" class="mini">+ Novo</button>
+    </div>
+    <div class="row2" id="acoesProj" hidden>
+      <button type="button" id="renProj" class="sec">Renomear</button>
+      <button type="button" id="delProj" class="sec" style="color:var(--erro)">Excluir</button>
+    </div>
+    <label>Seu nome<input id="coletor" autocomplete="name" placeholder="quem está coletando"></label>
+  </section>
+
+  <section class="card" id="cardPonto" hidden>
+    <h2>Novo ponto</h2>
+    <div class="row2">
+      <label>Nome do ponto<input id="nome" placeholder="ex.: CEO-05"></label>
+      <label>Tipo<select id="tipo"></select></label>
+    </div>
+    <label>Observação<input id="obs" placeholder="opcional (ex.: poste em frente à igreja)"></label>
+    <button type="button" id="capturar" class="gpsbtn">📍 Capturar e salvar ponto</button>
+    <small class="dica" id="dicaGps">Fique no local e toque. O app espera alguns segundos para pegar a melhor precisão.</small>
+    <details>
+      <summary>Digitar coordenada na mão</summary>
+      <label>Coordenada ou link longo do Maps<input id="manual" placeholder="-14.432100, -56.512300"></label>
+      <button type="button" id="salvarManual" class="sec">Salvar com esta coordenada</button>
+    </details>
+  </section>
+
+  <section class="card" id="cardLista" hidden>
+    <div class="painel-top"><h2 style="margin:0">Pontos do projeto</h2><span id="contPontos" class="dica" style="margin:0"></span></div>
+    <div id="lista" style="margin-top:8px"></div>
+  </section>
+
+  <section class="card" id="cardSaida" hidden>
+    <h2>Enviar e exportar</h2>
+    <button type="button" id="enviarProj" class="pri" style="margin-top:0">Enviar para a planilha</button>
+    <small class="dica" id="dicaEnvio"></small>
+    <div class="row3" style="margin-top:10px">
+      <button type="button" class="sec" id="bKmz" style="margin-top:0">KMZ</button>
+      <button type="button" class="sec" id="bKml" style="margin-top:0">KML</button>
+      <button type="button" class="sec" id="bCsv" style="margin-top:0">CSV</button>
+    </div>
+    <button type="button" class="sec" id="bShare" hidden>Compartilhar KMZ (WhatsApp, e-mail...)</button>
+  </section>
+
+  <section class="card" id="cardFila" hidden>
+    <div class="painel-top"><h2 style="margin:0">Envios desta aba</h2><span id="contFila" class="dica" style="margin:0"></span></div>
+    <div id="filaLista" style="margin-top:8px"></div>
+    <button type="button" id="enviarAgora" class="sec" hidden>Enviar agora</button>
+  </section>
+</main>
+
+<script src="config.js"></script>
+<script src="fila.js"></script>
+<script>
+  var CFG = self.APP_CONFIG || {};
+  var TIPOS = ['CTO', 'CEO', 'Poste', 'Caixa de inspeção', 'Curva', 'POP', 'Rack', 'Câmera', 'Outro'];
+  // cores do KML no formato aabbggrr
+  var COR_KML = { 'CTO': 'ff50b000', 'CEO': 'ff0080ff', 'Poste': 'ff808080', 'Caixa de inspeção': 'ffb6752e', 'Curva': 'ff00c0ff',
+    'POP': 'ff2020e0', 'Rack': 'ffa03070', 'Câmera': 'ffa04fff', 'Outro': 'ffffffff' };
+  var CHAVE = 'coleta_dados_v1', CHAVE_ID = 'coleta_identidade';
+  var D = { projetos: [], atual: null, seq: 0 };
+  var filaMap = {};      // idEnvio -> item da fila (só os da coleta)
+  var sincronizando = false, capturando = false;
+
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, txt) { var x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; }
+  function novoId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+  }
+  function hora(ms) { return new Date(ms).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+  function configurado() { return /^https:\/\/script\.google\.com\/.+\/exec$/.test(String(CFG.MANUT_URL || '')); }
+
+  // ---------- Dados no aparelho ----------
+  function carregar() {
+    try { var b = localStorage.getItem(CHAVE); if (b) D = Object.assign({ projetos: [], atual: null, seq: 0 }, JSON.parse(b)); } catch (e) {}
+  }
+  function gravar() {
+    try { localStorage.setItem(CHAVE, JSON.stringify(D)); }
+    catch (e) { alert('Não foi possível guardar no aparelho (sem espaço?). Exporte o KMZ agora para não perder os pontos.'); }
+  }
+  function proj() { return D.projetos.filter(function (p) { return p.id === D.atual; })[0] || null; }
+  function avisar(t) {
+    var b = $('toast'); b.textContent = t; b.hidden = false;
+    clearTimeout(avisar.t); avisar.t = setTimeout(function () { b.hidden = true; }, 6000);
+  }
+  function statusPonto(p) {
+    if (p.envioId && filaMap[p.envioId]) return filaMap[p.envioId].status === 'recusado' ? 'recusado' : 'aguardando';
+    if (p.envioId) return 'enviado';
+    return 'novo';
+  }
+
+  // ---------- Projetos ----------
+  function desenharProjetos() {
+    var s = $('selProj'); s.innerHTML = '';
+    if (!D.projetos.length) {
+      var o = document.createElement('option'); o.value = ''; o.textContent = 'Nenhum projeto ainda — toque em + Novo'; s.appendChild(o);
+    }
+    D.projetos.forEach(function (p) {
+      var o = document.createElement('option'); o.value = p.id; o.textContent = p.nome + ' (' + p.pontos.length + ')'; s.appendChild(o);
+    });
+    if (D.atual) s.value = D.atual;
+    var tem = !!proj();
+    $('acoesProj').hidden = !tem; $('cardPonto').hidden = !tem; $('cardLista').hidden = !tem; $('cardSaida').hidden = !tem;
+  }
+  $('novoProj').onclick = function () {
+    var nome = prompt('Nome do projeto', 'Projeto ' + (D.projetos.length + 1));
+    if (!nome || !nome.trim()) return;
+    var p = { id: novoId(), nome: nome.trim(), criadoEm: Date.now(), seq: 0, pontos: [] };
+    D.projetos.push(p); D.atual = p.id; gravar(); tudo(); prepararNome();
+  };
+  $('renProj').onclick = function () {
+    var p = proj(); if (!p) return;
+    var nome = prompt('Novo nome do projeto', p.nome);
+    if (!nome || !nome.trim()) return;
+    p.nome = nome.trim();
+    // pontos já enviados levam o nome antigo na planilha: reenviar atualiza
+    p.pontos.forEach(function (x) { x.envioId = null; });
+    gravar(); tudo();
+  };
+  $('delProj').onclick = function () {
+    var p = proj(); if (!p) return;
+    if (!confirm('Excluir o projeto "' + p.nome + '" e seus ' + p.pontos.length + ' pontos deste aparelho?\nO que já foi enviado para a planilha continua lá.')) return;
+    D.projetos = D.projetos.filter(function (x) { return x.id !== p.id; });
+    D.atual = D.projetos.length ? D.projetos[D.projetos.length - 1].id : null;
+    gravar(); tudo(); prepararNome();
+  };
+  $('selProj').onchange = function () { D.atual = this.value || null; gravar(); tudo(); prepararNome(); };
+  $('coletor').addEventListener('input', function () {
+    try { localStorage.setItem(CHAVE_ID, this.value.trim()); } catch (e) {}
+  });
+
+  // ---------- Captura ----------
+  function prepararNome() {
+    var p = proj(); $('nome').value = p ? 'Ponto ' + ((p.seq || 0) + 1) : '';
+  }
+  function lerGps(aoProgresso) {
+    return new Promise(function (res, rej) {
+      if (!navigator.geolocation) return rej(new Error('GPS indisponível neste aparelho. Use "Digitar coordenada na mão".'));
+      var melhor = null, wid, fim = false, t;
+      function terminar() {
+        if (fim) return; fim = true;
+        navigator.geolocation.clearWatch(wid); clearTimeout(t);
+        if (melhor) res(melhor); else rej(new Error('Não consegui posição. Confira se a localização do celular está ligada e tente em céu aberto.'));
+      }
+      wid = navigator.geolocation.watchPosition(function (p) {
+        if (!melhor || p.coords.accuracy < melhor.coords.accuracy) melhor = p;
+        aoProgresso(p.coords.accuracy);
+        if (p.coords.accuracy <= 5) terminar();
+      }, function (e) {
+        if (e.code === 1) { if (fim) return; fim = true; navigator.geolocation.clearWatch(wid); clearTimeout(t); rej(new Error('Permissão de localização negada. Libere a localização para este app nas configurações do navegador.')); }
+        else if (e.code === 3) terminar();
+      }, { enableHighAccuracy: true, timeout: 60000, maximumAge: 0 });
+      // espera ~12 s por uma precisão melhor; se ainda não tem posição nenhuma, espera até 60 s
+      t = setTimeout(function () { if (melhor) terminar(); else t = setTimeout(terminar, 48000); }, 12000);
+    });
+  }
+  function adicionarPonto(lat, lon, prec) {
+    var p = proj(); if (!p) return;
+    p.seq = (p.seq || 0) + 1;
+    var nome = $('nome').value.trim() || ('Ponto ' + p.seq);
+    var pt = { id: novoId(), n: p.seq, nome: nome, tipo: $('tipo').value, lat: lat, lon: lon, prec: prec,
+      obs: $('obs').value.trim(), em: Date.now(), envioId: null };
+    p.pontos.push(pt); gravar();
+    $('obs').value = ''; prepararNome();
+    try { if (navigator.vibrate) navigator.vibrate(120); } catch (e) {}
+    avisar('Salvo: ' + pt.nome + ' (' + pt.tipo + ')' + (prec != null ? ' · precisão ±' + Math.round(prec) + ' m' : ''));
+    tudo();
+  }
+  $('capturar').onclick = function () {
+    if (capturando || !proj()) return;
+    capturando = true;
+    var b = $('capturar'), dica = $('dicaGps');
+    b.disabled = true; b.textContent = 'Lendo GPS…'; dica.className = 'dica'; dica.textContent = 'Aguarde alguns segundos, fique parado.';
+    lerGps(function (a) { dica.textContent = 'Precisão agora: ±' + Math.round(a) + ' m…'; }).then(function (pos) {
+      var a = pos.coords.accuracy;
+      if (a > 30 && !confirm('Precisão baixa: ±' + Math.round(a) + ' m.\nOK = salvar assim mesmo.\nCancelar = tentar de novo.')) {
+        dica.className = 'dica ruim'; dica.textContent = 'Não salvou. Toque de novo, de preferência em céu aberto.'; return;
+      }
+      dica.className = 'dica ' + (a <= 10 ? 'boa' : a > 30 ? 'ruim' : '');
+      dica.textContent = 'Último ponto: ±' + Math.round(a) + ' m';
+      adicionarPonto(+pos.coords.latitude.toFixed(7), +pos.coords.longitude.toFixed(7), Math.round(a * 10) / 10);
+    }).catch(function (e) {
+      dica.className = 'dica ruim'; dica.textContent = e.message;
+    }).then(function () {
+      capturando = false; b.disabled = false; b.textContent = '📍 Capturar e salvar ponto';
+    });
+  };
+  function lerCoordTexto(s) {
+    s = String(s || '').trim();
+    var m = /@(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)/.exec(s) || /^(-?\d{1,2}(?:\.\d+)?)\s*[,; ]\s*(-?\d{1,3}(?:\.\d+)?)$/.exec(s);
+    if (!m) return null;
+    var lat = parseFloat(m[1]), lon = parseFloat(m[2]);
+    if (!(Math.abs(lat) <= 90 && Math.abs(lon) <= 180)) return null;
+    return [lat, lon];
+  }
+  $('salvarManual').onclick = function () {
+    var c = lerCoordTexto($('manual').value);
+    if (!c) { alert('Não entendi a coordenada. Use o formato -14.432100, -56.512300 (com ponto nos decimais).'); return; }
+    adicionarPonto(c[0], c[1], null); $('manual').value = '';
+  };
+
+  // ---------- Lista ----------
+  function desenharLista() {
+    var p = proj(), box = $('lista'); box.innerHTML = '';
+    if (!p) return;
+    $('contPontos').textContent = p.pontos.length + (p.pontos.length === 1 ? ' ponto' : ' pontos');
+    if (!p.pontos.length) { box.appendChild(el('div', 'vazio', 'Nenhum ponto ainda. Use o botão verde lá em cima.')); return; }
+    p.pontos.slice().reverse().forEach(function (pt) {
+      var d = el('div', 'item');
+      var st = statusPonto(pt);
+      var ic = { novo: '🆕', aguardando: '⏳', enviado: '✅', recusado: '⚠️' }[st];
+      d.appendChild(el('b', null, ic + ' ' + pt.nome + ' · ' + pt.tipo));
+      d.appendChild(el('div', 'meta', pt.lat.toFixed(6) + ', ' + pt.lon.toFixed(6) + (pt.prec != null ? ' · ±' + Math.round(pt.prec) + ' m' : ' · digitado') + ' · ' + hora(pt.em)));
+      if (pt.obs) d.appendChild(el('div', 'meta', pt.obs));
+      if (st === 'recusado') d.appendChild(el('div', 'erro', (filaMap[pt.envioId].erros || []).join(' ')));
+      var ac = el('div', 'acoes');
+      var mapa = el('a', 'mini', 'Ver no mapa'); mapa.href = 'https://www.google.com/maps?q=' + pt.lat + ',' + pt.lon; mapa.target = '_blank'; mapa.rel = 'noopener';
+      var ed = el('button', 'mini', 'Editar'); ed.type = 'button'; ed.onclick = function () { editar(d, pt); };
+      var ex = el('button', 'mini perigo', 'Excluir'); ex.type = 'button';
+      ex.onclick = function () {
+        var extra = pt.envioId ? '\nEle já foi enviado: a linha na planilha continua lá, apague por lá se precisar.' : '';
+        if (!confirm('Excluir "' + pt.nome + '"?' + extra)) return;
+        p.pontos = p.pontos.filter(function (x) { return x.id !== pt.id; }); gravar(); tudo();
+      };
+      ac.appendChild(mapa); ac.appendChild(ed); ac.appendChild(ex); d.appendChild(ac);
+      box.appendChild(d);
+    });
+  }
+  function editar(d, pt) {
+    d.innerHTML = '';
+    var f = el('div');
+    f.innerHTML = '<div class="row2"><label>Nome<input class="e-nome"></label><label>Tipo<select class="e-tipo"></select></label></div>' +
+      '<label>Observação<input class="e-obs"></label>' +
+      '<div class="row2"><label>Latitude<input class="e-lat" inputmode="decimal"></label><label>Longitude<input class="e-lon" inputmode="decimal"></label></div>' +
+      '<div class="acoes" style="display:flex;gap:8px;margin-top:10px"><button type="button" class="mini e-ok">Salvar</button><button type="button" class="mini perigo e-no">Cancelar</button></div>';
+    d.appendChild(f);
+    var sel = f.querySelector('.e-tipo');
+    TIPOS.forEach(function (t) { var o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o); });
+    f.querySelector('.e-nome').value = pt.nome; sel.value = pt.tipo; f.querySelector('.e-obs').value = pt.obs || '';
+    f.querySelector('.e-lat').value = pt.lat; f.querySelector('.e-lon').value = pt.lon;
+    f.querySelector('.e-no').onclick = desenharLista;
+    f.querySelector('.e-ok').onclick = function () {
+      var lat = parseFloat(String(f.querySelector('.e-lat').value).replace(',', '.')), lon = parseFloat(String(f.querySelector('.e-lon').value).replace(',', '.'));
+      var nome = f.querySelector('.e-nome').value.trim();
+      if (!nome || !(Math.abs(lat) <= 90) || !(Math.abs(lon) <= 180)) { alert('Confira o nome e as coordenadas.'); return; }
+      if (lat !== pt.lat || lon !== pt.lon) pt.prec = null;
+      pt.nome = nome; pt.tipo = sel.value; pt.obs = f.querySelector('.e-obs').value.trim(); pt.lat = lat; pt.lon = lon;
+      pt.envioId = null;   // mudou: o próximo envio atualiza a linha na planilha
+      gravar(); tudo();
+    };
+  }
+
+  // ---------- Exportar ----------
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function kml(p) {
+    var x = '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n<name>' + esc(p.nome) + '</name>\n';
+    TIPOS.forEach(function (t, i) {
+      x += '<Style id="t' + i + '"><IconStyle><color>' + COR_KML[t] + '</color><scale>1.1</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle>' +
+        '<LabelStyle><scale>0.9</scale></LabelStyle></Style>\n';
+    });
+    TIPOS.forEach(function (t, i) {
+      var l = p.pontos.filter(function (pt) { return pt.tipo === t; });
+      if (!l.length) return;
+      x += '<Folder><name>' + esc(t) + '</name>\n';
+      l.forEach(function (pt) {
+        var desc = 'Tipo: ' + pt.tipo + (pt.obs ? '\nObs.: ' + pt.obs : '') + (pt.prec != null ? '\nPrecisão: ±' + Math.round(pt.prec) + ' m' : '') + '\nColetado em: ' + new Date(pt.em).toLocaleString('pt-BR');
+        x += '<Placemark><name>' + esc(pt.nome) + '</name><description>' + esc(desc) + '</description><styleUrl>#t' + i + '</styleUrl>' +
+          '<Point><coordinates>' + pt.lon + ',' + pt.lat + ',0</coordinates></Point></Placemark>\n';
+      });
+      x += '</Folder>\n';
+    });
+    return x + '</Document>\n</kml>\n';
+  }
+  var CRC_T = (function () { var t = [], c, n, k; for (n = 0; n < 256; n++) { c = n; for (k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(u8) { var c = 0xFFFFFFFF; for (var i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  // KMZ = zip com um único arquivo doc.kml (sem compressão, não precisa de biblioteca)
+  function kmz(texto) {
+    var dados = new TextEncoder().encode(texto), nome = new TextEncoder().encode('doc.kml'), crc = crc32(dados);
+    var dt = new Date(), dd = ((dt.getFullYear() - 1980) << 9) | ((dt.getMonth() + 1) << 5) | dt.getDate();
+    var tm = (dt.getHours() << 11) | (dt.getMinutes() << 5) | (dt.getSeconds() >> 1);
+    var lh = 30 + nome.length, ch = 46 + nome.length;
+    var buf = new Uint8Array(lh + dados.length + ch + 22), v = new DataView(buf.buffer), o = 0;
+    v.setUint32(o, 0x04034b50, true); v.setUint16(o + 4, 20, true); v.setUint16(o + 6, 0x0800, true); v.setUint16(o + 8, 0, true);
+    v.setUint16(o + 10, tm, true); v.setUint16(o + 12, dd, true); v.setUint32(o + 14, crc, true);
+    v.setUint32(o + 18, dados.length, true); v.setUint32(o + 22, dados.length, true); v.setUint16(o + 26, nome.length, true); v.setUint16(o + 28, 0, true);
+    buf.set(nome, 30); buf.set(dados, lh);
+    o = lh + dados.length;
+    v.setUint32(o, 0x02014b50, true); v.setUint16(o + 4, 20, true); v.setUint16(o + 6, 20, true); v.setUint16(o + 8, 0x0800, true); v.setUint16(o + 10, 0, true);
+    v.setUint16(o + 12, tm, true); v.setUint16(o + 14, dd, true); v.setUint32(o + 16, crc, true);
+    v.setUint32(o + 20, dados.length, true); v.setUint32(o + 24, dados.length, true); v.setUint16(o + 28, nome.length, true);
+    v.setUint16(o + 30, 0, true); v.setUint16(o + 32, 0, true); v.setUint16(o + 34, 0, true); v.setUint16(o + 36, 0, true);
+    v.setUint32(o + 38, 0, true); v.setUint32(o + 42, 0, true);
+    buf.set(nome, o + 46);
+    var e = o + ch;
+    v.setUint32(e, 0x06054b50, true); v.setUint16(e + 4, 0, true); v.setUint16(e + 6, 0, true); v.setUint16(e + 8, 1, true); v.setUint16(e + 10, 1, true);
+    v.setUint32(e + 12, ch, true); v.setUint32(e + 16, lh + dados.length, true); v.setUint16(e + 20, 0, true);
+    return buf;
+  }
+  function csv(p) {
+    var q = function (s) { return '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"'; };
+    var l = ['Projeto;Nº;Nome;Tipo;Latitude;Longitude;Precisão (m);Observação;Coletado por;Coletado em'];
+    p.pontos.forEach(function (pt) {
+      l.push([q(p.nome), pt.n, q(pt.nome), q(pt.tipo), pt.lat, pt.lon, pt.prec == null ? '' : pt.prec, q(pt.obs), q($('coletor').value.trim()), q(new Date(pt.em).toLocaleString('pt-BR'))].join(';'));
+    });
+    return '﻿' + l.join('\r\n');
+  }
+  function nomeArq(p, ext) {
+    var b = p.nome.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w-]+/g, '_').replace(/^_+|_+$/g, '') || 'projeto';
+    return b + '.' + ext;
+  }
+  function criarBlob(p, tipo) {
+    if (tipo === 'kmz') return new Blob([kmz(kml(p))], { type: 'application/vnd.google-earth.kmz' });
+    if (tipo === 'kml') return new Blob([kml(p)], { type: 'application/vnd.google-earth.kml+xml' });
+    return new Blob([csv(p)], { type: 'text/csv;charset=utf-8' });
+  }
+  function baixar(tipo) {
+    var p = proj(); if (!p) return;
+    if (!p.pontos.length) { alert('Este projeto ainda não tem pontos.'); return; }
+    var a = document.createElement('a'); a.href = URL.createObjectURL(criarBlob(p, tipo)); a.download = nomeArq(p, tipo);
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+  }
+  $('bKmz').onclick = function () { baixar('kmz'); };
+  $('bKml').onclick = function () { baixar('kml'); };
+  $('bCsv').onclick = function () { baixar('csv'); };
+  $('bShare').onclick = function () {
+    var p = proj(); if (!p || !p.pontos.length) return;
+    var f = new File([criarBlob(p, 'kmz')], nomeArq(p, 'kmz'), { type: 'application/vnd.google-earth.kmz' });
+    navigator.share({ files: [f], title: p.nome }).catch(function () {});
+  };
+  (function () {
+    try {
+      var t = new File([''], 'a.kmz', { type: 'application/vnd.google-earth.kmz' });
+      if (navigator.canShare && navigator.canShare({ files: [t] })) $('bShare').hidden = false;
+    } catch (e) {}
+  })();
+
+  // ---------- Envio para a planilha ----------
+  function registrarSync() {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.ready.then(function (reg) { return reg.sync ? reg.sync.register('enviar-fila') : null; }).catch(function () {});
+  }
+  $('enviarProj').onclick = function () {
+    var p = proj(); if (!p) return;
+    var pend = p.pontos.filter(function (x) { return statusPonto(x) === 'novo'; });
+    if (!pend.length) { avisar('Nada novo para enviar neste projeto.'); return; }
+    var idEnvio = novoId(), coletor = $('coletor').value.trim();
+    var item = {
+      idEnvio: idEnvio, destino: 'coleta', acao: 'registrar_pontos', criadoEm: Date.now(), status: 'aguardando',
+      resumo: '📍 ' + p.nome + ' · ' + pend.length + (pend.length === 1 ? ' ponto' : ' pontos'),
+      dados: {
+        projeto: p.nome, projetoId: p.id, coletor: coletor,
+        pontos: pend.map(function (x) { return { id: x.id, n: x.n, nome: x.nome, tipo: x.tipo, lat: x.lat, lon: x.lon, prec: x.prec, obs: x.obs, em: new Date(x.em).toISOString() }; })
+      }
+    };
+    $('enviarProj').disabled = true;
+    Fila.gravar(item).then(function () {
+      pend.forEach(function (x) { x.envioId = idEnvio; });
+      gravar(); registrarSync();
+      avisar(navigator.onLine ? 'Enviando ' + pend.length + ' ponto(s)…' : 'Sem sinal: os pontos ficam guardados e vão para a planilha quando o celular pegar internet.');
+      return sincronizar(false);
+    }).catch(function (e) { alert('Não foi possível guardar o envio: ' + e.message); })
+      .then(function () { $('enviarProj').disabled = false; tudo(); });
+  };
+
+  function sincronizar(manual) {
+    if (!configurado()) { if (manual) alert('O envio para a planilha ainda não está configurado (config.js).'); return Promise.resolve(); }
+    if (sincronizando) return Promise.resolve();
+    sincronizando = true;
+    if (manual) { $('enviarAgora').disabled = true; $('enviarAgora').textContent = 'Enviando…'; }
+    return Fila.enviarFila().then(function (res) {
+      if (manual && res.falha) alert('Não foi possível enviar agora (' + res.falha + '). Os pontos continuam guardados no aparelho.');
+      else if (res.enviados.some(function (x) { return x.destino === 'coleta'; })) avisar('Pontos enviados para a planilha ✅');
+    }).then(function () {
+      sincronizando = false; $('enviarAgora').disabled = false; $('enviarAgora').textContent = 'Enviar agora';
+      return atualizarFila();
+    });
+  }
+  $('enviarAgora').onclick = function () { sincronizar(true); };
+
+  function atualizarFila() {
+    var on = navigator.onLine;
+    $('statusRede').textContent = on ? 'Com sinal' : 'Sem sinal';
+    $('statusRede').className = 'pill ' + (on ? 'on' : 'off');
+    return Fila.todos().then(function (l) {
+      var mine = l.filter(function (i) { return i.destino === 'coleta'; });
+      filaMap = {}; mine.forEach(function (i) { filaMap[i.idEnvio] = i; });
+      var box = $('filaLista'); box.innerHTML = '';
+      $('cardFila').hidden = !mine.length;
+      $('contFila').textContent = mine.length + ' no aparelho';
+      $('enviarAgora').hidden = !mine.some(function (i) { return i.status !== 'recusado'; });
+      mine.forEach(function (it) {
+        var d = el('div', 'item');
+        d.appendChild(el('b', null, (it.status === 'recusado' ? '⚠️ ' : '⏳ ') + it.resumo));
+        d.appendChild(el('div', 'meta', 'Salvo em ' + hora(it.criadoEm) + (it.status === 'recusado' ? ' · recusado pela planilha' : ' · aguardando sinal')));
+        if (it.status === 'recusado') {
+          d.appendChild(el('div', 'erro', (it.erros || []).join(' ')));
+          var ac = el('div', 'acoes');
+          var b1 = el('button', 'mini', 'Tentar de novo'); b1.type = 'button';
+          b1.onclick = function () { it.status = 'aguardando'; it.erros = []; Fila.gravar(it).then(function () { return sincronizar(true); }); };
+          var b2 = el('button', 'mini perigo', 'Descartar envio'); b2.type = 'button';
+          b2.onclick = function () {
+            if (!confirm('Descartar este envio? Os pontos continuam no projeto e podem ser enviados de novo.')) return;
+            D.projetos.forEach(function (p) { p.pontos.forEach(function (x) { if (x.envioId === it.idEnvio) x.envioId = null; }); });
+            gravar(); Fila.remover(it.idEnvio).then(tudo);
+          };
+          ac.appendChild(b1); ac.appendChild(b2); d.appendChild(ac);
+        }
+        box.appendChild(d);
+      });
+      desenharLista();
+      var p = proj();
+      var n = p ? p.pontos.filter(function (x) { return statusPonto(x) === 'novo'; }).length : 0;
+      $('dicaEnvio').textContent = n ? n + ' ponto(s) novo(s) para enviar. Enviar de novo nunca duplica: o que já foi só é atualizado.' : 'Tudo o que está neste projeto já foi enviado ou está na fila.';
+    });
+  }
+  function tudo() { desenharProjetos(); return atualizarFila(); }
+
+  // ---------- Início ----------
+  (function iniciar() {
+    carregar();
+    TIPOS.forEach(function (t) { var o = document.createElement('option'); o.value = t; o.textContent = t; $('tipo').appendChild(o); });
+    try { $('coletor').value = localStorage.getItem(CHAVE_ID) || JSON.parse(localStorage.getItem('manut_identidade') || '{}').nome || JSON.parse(localStorage.getItem('romp_identidade') || '{}').tecnico || ''; } catch (e) {}
+    if (D.atual && !proj()) D.atual = D.projetos.length ? D.projetos[D.projetos.length - 1].id : null;
+    $('avisoConfig').hidden = configurado();
+    prepararNome();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+      navigator.serviceWorker.addEventListener('message', function (ev) { if (ev.data && ev.data.tipo === 'fila') atualizarFila().then(desenharProjetos); });
+    }
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
+    tudo();
+    sincronizar(false);
+    setInterval(function () { sincronizar(false); }, 60000);
+    window.addEventListener('online', function () { sincronizar(false); });
+    window.addEventListener('offline', atualizarFila);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) sincronizar(false); });
+  })();
+</script>
+</body>
+</html>
