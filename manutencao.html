@@ -19,7 +19,7 @@
   .pill.on { background:#d9f2df; color:var(--ok); }
   .pill.off { background:#fde2d5; color:#9a3412; }
   .abas { display:flex; background:var(--azul); padding:0 12px 10px; gap:8px; }
-  .abas a { flex:1; text-align:center; padding:9px 6px; border-radius:8px; color:#fff; text-decoration:none; font-size:14px; font-weight:600; background:rgba(255,255,255,.12); }
+  .abas a { flex:1; text-align:center; padding:9px 2px; border-radius:8px; color:#fff; text-decoration:none; font-size:13px; font-weight:600; background:rgba(255,255,255,.12); }
   .abas a.ativa { background:#fff; color:var(--azul); }
   main { padding:12px; max-width:640px; margin:0 auto 80px; }
   .card { background:#fff; border:1px solid var(--borda); border-radius:12px; padding:14px; margin-bottom:12px; }
@@ -69,7 +69,8 @@
 <nav class="abas">
   <a href="index.html">Rompimento</a>
   <a href="manutencao.html" class="ativa">Manutenção</a>
-  <a href="coleta.html">Coleta GPS</a>
+  <a href="levantamento.html">Levantamento</a>
+  <a href="coleta.html">Coleta</a>
 </nav>
 <main>
   <div id="avisoConfig" class="erros" hidden>
@@ -352,7 +353,7 @@
       if (!itens.length) box.appendChild(el('div', 'vazio', 'Nada pendente. Tudo o que foi registrado já chegou na planilha.'));
       itens.forEach(function (it) {
         var d = el('div', 'item');
-        var rot = it.destino === 'manut' ? '🔧 ' : it.destino === 'coleta' ? '📍 ' : '🧵 ';
+        var rot = it.destino === 'manut' ? '🔧 ' : (it.destino === 'lev' ? '📋 ' : it.destino === 'coleta' ? '📍 ' : '🧵 ');
         d.appendChild(el('b', null, (it.status === 'recusado' ? '⚠️ ' : '⏳ ') + rot + it.resumo));
         d.appendChild(el('div', 'meta', 'Salvo em ' + hora(it.criadoEm) + (it.status === 'recusado' ? ' · recusado pela planilha' : ' · aguardando sinal')));
         if (it.status === 'recusado') {
@@ -360,8 +361,9 @@
           var ac = el('div', 'acoes');
           var b1 = el('button', 'mini', 'Corrigir'); b1.type = 'button';
           b1.onclick = function () {
-            if (it.destino === 'coleta') location.href = 'coleta.html';
-            else if (it.destino === 'manut') corrigir(it);
+            if (it.destino === 'manut') corrigir(it);
+            else if (it.destino === 'coleta') location.href = 'coleta.html';
+            else if (it.destino === 'lev') location.href = 'levantamento.html#corrigir=' + encodeURIComponent(it.idEnvio);
             else location.href = 'index.html#corrigir=' + encodeURIComponent(it.idEnvio);
           };
           var b2 = el('button', 'mini perigo', 'Descartar'); b2.type = 'button';
@@ -374,7 +376,7 @@
       if (!hist.length) rec.appendChild(el('div', 'vazio', 'Nenhum envio ainda neste aparelho.'));
       hist.slice(0, 10).forEach(function (h) {
         var d = el('div', 'item');
-        d.appendChild(el('b', null, '✅ ' + (h.destino === 'manut' ? '🔧 ' : h.destino === 'coleta' ? '📍 ' : '🧵 ') + h.id));
+        d.appendChild(el('b', null, '✅ ' + (h.destino === 'manut' ? '🔧 ' : (h.destino === 'lev' ? '📋 ' : h.destino === 'coleta' ? '📍 ' : '🧵 ')) + h.id));
         d.appendChild(el('div', 'meta', h.resumo + ' · enviado em ' + hora(h.enviadoEm)));
         rec.appendChild(d);
       });

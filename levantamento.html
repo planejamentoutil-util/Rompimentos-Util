@@ -19,7 +19,7 @@
   .pill.on { background:#d9f2df; color:var(--ok); }
   .pill.off { background:#fde2d5; color:#9a3412; }
   .abas { display:flex; background:var(--azul); padding:0 12px 10px; gap:8px; }
-  .abas a { flex:1; text-align:center; padding:9px 6px; border-radius:8px; color:#fff; text-decoration:none; font-size:14px; font-weight:600; background:rgba(255,255,255,.12); }
+  .abas a { flex:1; text-align:center; padding:9px 2px; border-radius:8px; color:#fff; text-decoration:none; font-size:13px; font-weight:600; background:rgba(255,255,255,.12); }
   .abas a.ativa { background:#fff; color:var(--azul); }
   main { padding:12px; max-width:640px; margin:0 auto 80px; }
   .card { background:#fff; border:1px solid var(--borda); border-radius:12px; padding:14px; margin-bottom:12px; }
@@ -74,6 +74,7 @@
   <a href="index.html">Rompimento</a>
   <a href="manutencao.html">Manutenção</a>
   <a href="levantamento.html" class="ativa">Levantamento</a>
+  <a href="coleta.html">Coleta</a>
 </nav>
 <main>
   <div id="avisoConfig" class="erros" hidden>
@@ -440,7 +441,7 @@
   }
 
   // ---------- Fila (a mesma do app) ----------
-  var ICONE = { manut: '🔧 ', lev: '📋 ' };
+  var ICONE = { manut: '🔧 ', lev: '📋 ', coleta: '📍 ' };
   function atualizarPainel() {
     var on = navigator.onLine;
     $('statusRede').textContent = on ? 'Com sinal' : 'Sem sinal';
@@ -462,6 +463,7 @@
           var b1 = el('button', 'mini', 'Corrigir'); b1.type = 'button';
           b1.onclick = function () {
             if (it.destino === 'lev') corrigir(it);
+            else if (it.destino === 'coleta') location.href = 'coleta.html';
             else location.href = (it.destino === 'manut' ? 'manutencao.html' : 'index.html') + '#corrigir=' + encodeURIComponent(it.idEnvio);
           };
           var b2 = el('button', 'mini perigo', 'Descartar'); b2.type = 'button';

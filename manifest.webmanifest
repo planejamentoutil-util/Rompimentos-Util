@@ -1,7 +1,7 @@
 {
   "name": "Registro de Campo – Util",
   "short_name": "Util Campo",
-  "description": "Registro de rompimentos de fibra, manutenção dos POPs e coleta de pontos GPS, funciona sem internet.",
+  "description": "Registro de rompimentos de fibra e manutenção dos POPs, funciona sem internet.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -48,10 +48,10 @@
       });
   }
 
-  // Cada registro vai para a planilha do seu tipo: rompimento (padrão), manutenção de POP ou coleta de pontos GPS (mesma planilha da manutenção).
+  // Cada registro vai para a planilha do seu tipo: rompimento (padrão), manutenção de POP levantamento de POP ou coleta de pontos GPS (mesma planilha da manutenção).
   function destino(item) {
     var c = g.APP_CONFIG || {};
-    if (item.destino === 'manut' || item.destino === 'coleta') return { url: c.MANUT_URL, chave: c.MANUT_CHAVE };
+    if (item.destino === 'manut' || item.destino === 'lev' || item.destino === 'coleta') return { url: c.MANUT_URL, chave: c.MANUT_CHAVE };
     return { url: c.API_URL, chave: c.CHAVE };
   }
 
